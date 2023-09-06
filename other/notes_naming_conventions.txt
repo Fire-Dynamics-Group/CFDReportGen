@@ -1,0 +1,44 @@
+IS Notes for naming conventions
+
+John's runs used Extract 
+extract lower case used for id in latest Test1
+exhaust new id name used in Test2
+
+aov not denominated - in John's runs this was named different to other holes - see exerpt below
+in the future inlets should be demarcated whether aov, stair aov, hole in model just to stop fire from dying etc
+
+&HOLE ID='AOV', XB=15.8,16.8,0.9,1.9,24.982927,25.5/ 
+&HOLE ID='Hole', XB=6.4,6.7,11.4,13.2,6.2,7.0/ 
+
+for door openings:
+
+(i)
+ramp id; e.g. Door_RAMP
+control id; e.g. contains Apartment or Apt
+input_id - probably not required if the above are followed
+
+
+(ii) if changed by pyrosim:
+naming convention for DEVC ID e.g. include Apt_Door or Stair_Door as below
+Ian is unsure if this is from calling the obstacles appropriately when modelling
+
+
+exerpts below for context
+
+&DEVC ID='Apt_Door_FF->OUT->OUT->OUT', QUANTITY='TIME', XYZ=4.5,5.5,6.1, SETPOINT=60.0, INITIAL_STATE=.TRUE./
+&DEVC ID='Stair_Door_FF->OUT->OUT->OUT', QUANTITY='TIME', XYZ=4.5,5.5,6.1, SETPOINT=0.0, INITIAL_STATE=.TRUE./
+
+
+
+&OBST ID='door', XB=11.7,12.5,5.2,5.3,6.1,8.2, SURF_ID='Plasterboard', DEVC_ID='Apt_Door_FF->OUT->OUT->OUT'/ 
+&OBST ID='door', XB=11.7,12.5,2.9,3.0,6.1,8.2, SURF_ID='Plasterboard', DEVC_ID='Stair_Door_FF->OUT->OUT->OUT'/
+
+----
+for hrr:
+	hrrpua - currently case insensitive; finds only numbers in line
+	SURF_IDS='Fire  - currently allows for Fire or Fire01 etc 
+
+for sprinklers:
+	should contain SPRK - case insensitive in code
+
+

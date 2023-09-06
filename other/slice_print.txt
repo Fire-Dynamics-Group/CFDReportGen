@@ -1,0 +1,13 @@
+SliceCollection([Slice([2D] quantity=Quantity('PRESSURE'), cell_centered=False, extent=Extent([0.00, 44.30] x [-0.10, 15.00] x [7.10, 7.10]), extent_dirs=('x', 'y'), orientation=3),
+Slice([2D] quantity=Quantity('PRESSURE'), cell_centered=False, extent=Extent([0.00, 44.30] x [-0.10, 15.00] x [8.10, 8.10]), extent_dirs=('x', 'y'), orientation=3),
+Slice([2D] quantity=Quantity('TEMPERATURE'), cell_centered=False, extent=Extent([12.10, 12.10] x [-0.10, 5.30] x [0.10, 25.70]), extent_dirs=('y', 'z'), orientation=1),
+Slice([2D] quantity=Quantity('TEMPERATURE'), cell_centered=False, extent=Extent([0.00, 42.30] x [4.50, 4.50] x [6.10, 8.90]), extent_dirs=('x', 'z'), orientation=2),
+Slice([2D] quantity=Quantity('TEMPERATURE'), cell_centered=False, extent=Extent([0.00, 44.30] x [-0.10, 15.00] x [8.10, 8.10]), extent_dirs=('x', 'y'), orientation=3),
+Slice([2D] quantity=Quantity('SOOT VISIBILITY'), cell_centered=False, extent=Extent([12.10, 12.10] x [-0.10, 5.30] x [0.10, 25.70]), extent_dirs=('y', 'z'), orientation=1),
+Slice([2D] quantity=Quantity('SOOT VISIBILITY'), cell_centered=False, extent=Extent([0.00, 42.30] x [4.50, 4.50] x [6.10, 8.90]), extent_dirs=('x', 'z'), orientation=2),
+Slice([2D] quantity=Quantity('SOOT VISIBILITY'), cell_centered=False, extent=Extent([0.00, 44.30] x [-0.10, 15.00] x [8.10, 8.10]), extent_dirs=('x', 'y'), orientation=3),
+Slice([2D] quantity=Quantity('VELOCITY'), cell_centered=False, extent=Extent([12.10, 12.10] x [-0.10, 5.30] x [0.10, 25.70]), extent_dirs=('y', 'z'), orientation=1),
+Slice([2D] quantity=Quantity('VELOCITY'), cell_centered=False, extent=Extent([0.90, 0.90] x [3.00, 5.30] x [6.10, 8.90]), extent_dirs=('y', 'z'), orientation=1),
+Slice([2D] quantity=Quantity('VELOCITY'), cell_centered=False, extent=Extent([0.00, 44.30] x [-0.10, 15.00] x [8.10, 8.10]), extent_dirs=('x', 'y'), orientation=3),
+Slice([2D] quantity=Quantity('VELOCITY'), cell_centered=False, extent=Extent([0.00, 42.30] x [4.50, 4.50] x [6.10, 8.90]), extent_dirs=('x', 'z'), orientation=2),
+Slice([2D] quantity=Quantity('VELOCITY'), cell_centered=False, extent=Extent([26.00, 26.00] x [3.00, 5.30] x [6.10, 8.90]), extent_dirs=('y', 'z'), orientation=1)])

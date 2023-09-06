@@ -1,0 +1,21 @@
+{% if HAS_EXTENDED_TRAVEL %}
+{% if NUM_SCENARIOS %}
+{% if HAS_EXTENDED_TRAVEL %}
+{%- else -%}
+
+{% endif %} may need p tags for some??
+{% if BS9999 %}
+
+{{%p if MOE_SCENARIO %}}
+
+{{%p if FSA_SCENARIO %}}
+{{%p endif %}}
+
+
+bring in if adb/bs9999
+
+need if one fire only
+
+NUM_SCENARIOS
+NUM_MOE_SCENARIOS
+NUM_FSA_SCENARIOS

@@ -1,0 +1,6 @@
+path_to_fds_file for finding door openings: 'graph_generation\\MoE_Test\\Graph_MoE_Test\\Graph_MoE_Test_devc.csv'
+
+
+FSA 1: {'opening_apartment': 60.0, 'closing_apartment': None, 'opening_stair': 0.0, 'closing_stair': None}
+FSA 2: {'opening_apartment': 60.0, 'closing_apartment': 59.0, 'opening_stair': 0.0, 'closing_stair': 0.0}
+MOE: {'opening_apartment': 150.0, 'closing_apartment': 170.0, 'opening_stair': 160.0, 'closing_stair': 180.0}
