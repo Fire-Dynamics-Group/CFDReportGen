@@ -509,7 +509,7 @@ def run_hrr_charts(path_to_fds_file, path_to_hrr_file, new_dir_path,firefighting
 def run_CFD_charts(path_to_root_directory, scenario_names, new_dir_path):
     for index in range(len(scenario_names)):
         scenario_name = scenario_names[index]
-        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file = return_paths_to_files(scenario_name, dir_path=path_to_root_directory, new_folder_structure=True)
+        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name, dir_path=path_to_root_directory, new_folder_structure=True)
 
     # path_to_fds_file = 'graph_generation\MoE_Test\Graph_MoE_Test\Graph_MoE_Test.fds'
         
@@ -535,12 +535,12 @@ if __name__=='__main__':
     # # scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios = create_scenario_object(path_to_directory="graph_generation")
     # # loop through names to find fds path etc
     # run_CFD_charts(path_to_root_directory, scenario_names, new_dir_path)
-    project_name = "Claridges Charts"
-    new_dir_path = Path(__file__).parent / "outputReports"/f"{project_name}"
+    project_name = "Blackhorse Lane FS3"
+    new_dir_path = f"outputReports/{project_name}" #Path(__file__).parent / "outputReports"/f"{project_name}"
     if not os.path.isdir(new_dir_path):
         os.mkdir(new_dir_path)
     # os.mkdir(new_dir_path)
-    firefighting = False
+    firefighting = True
     # # path_to_file = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\26. Breams Building\FSA\FSA_devc - IS.csv'
     # # path_to_fds_file = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\26. Breams Building\FSA\FSA.fds'
     # # path_to_hrr_file = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\26. Breams Building\FSA\FSA_hrr.csv'
@@ -552,11 +552,14 @@ if __name__=='__main__':
 
     # path_to_root_directory = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\31. Camp Hill Gardens Corridor\FS2_FSA_2'
     # path_to_root_directory = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\31. Camp Hill Gardens Corridor'
-    path_to_root_directory = r"C:\Users\IanShaw\Fire Dynamics Group Dropbox\Thomas O'Driscoll\Projects CFD\25. Claridges\New L7"
+    path_to_root_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limited\F Drive - Projects\230223 - East Road\6. Calculations\Completed runs for transfer"
+    path_to_root_directory = r"C:\Users\IanShaw\Dropbox\Projects CFD\38. No1 Blackhorse Lane\S3 FSA"
     # path_to_file = fr'{path_to_root_directory}\FS5_MOE\FS5_MOE\FS5_MOE_devc.csv'
     # path_to_fds_file = fr'{path_to_root_directory}\FS5_MOE\FS5_MOE.fds'
+    from os import listdir
     # FS5_MOE_devc.csv
-    for current_name in ['inletandextract_4m3_L7']:
-        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file = return_paths_to_files(scenario_name=current_name, dir_path=path_to_root_directory, new_folder_structure=True)
-        run_hrr_charts(path_to_fds_file, path_to_hrr_file,new_dir_path=new_dir_path,firefighting=True)
-        run_devc_charts(path_to_devc_file, path_to_fds_file, new_dir_path,firefighting=True)
+    for current_name in listdir(path_to_root_directory):
+        if current_name == '00_FS3_FSA':
+            path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name=current_name, dir_path=path_to_root_directory, new_folder_structure=True)
+            run_hrr_charts(path_to_fds_file, path_to_hrr_file,new_dir_path=new_dir_path,firefighting=True)
+            run_devc_charts(path_to_devc_file, path_to_fds_file, new_dir_path,firefighting=True)

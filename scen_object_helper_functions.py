@@ -1,35 +1,14 @@
 import re
-from helper_functions import round_to, return_paths_to_files, find_all_files_of_type, return_all_subfolders
-from os import listdir
+from helper_functions import round_to, find_all_files_of_type, return_all_subfolders
+from os import listdir, scandir, path
+
 from pathlib import Path
 
-# C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Research CFD\1. Graph Generation\Test Cases\Test2
-# def return_paths_to_files(scenario_name, dir_path='graph_generation', new_folder_structure=False):
-#     if new_folder_structure == False:
-#         path_to_scen_directory = f'./{dir_path}/{scenario_name}/Graph_{scenario_name}'
-#         path_to_fds_file = f'{path_to_scen_directory}/Graph_{scenario_name}.fds'
-#         path_to_devc_file = f'{path_to_scen_directory}/Graph_{scenario_name}_devc.csv'
-#         path_to_hrr_file = f'graph_generation\{scenario_name}\Graph_{scenario_name}\Graph_{scenario_name}_hrr.csv'
-
-#     else:
-#         path_to_scen_directory = f'{dir_path}/{scenario_name}'
-#         fds_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix=".fds")[0]
-#         devc_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix="devc.csv")[0]
-#         hrr_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix="hrr.csv")[0]
-
-#         # find all files - ones with x and y ending
-#         path_to_hrr_file = f'{path_to_scen_directory}/{hrr_name}'
-#         path_to_fds_file = f'{path_to_scen_directory}/{fds_name}'
-#         path_to_devc_file = f'{path_to_scen_directory}/{devc_name}'
-
-#     return path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file
-
-# def find_all_files_of_type(path_to_directory, suffix=".csv"):
-#     filenames = listdir(path_to_directory)
-#     return [ f for f in filenames if f.endswith( suffix )]
-
 def return_scenario_names(path_to_directory):
-    scenario_names = [f for f in listdir(Path(__file__).parent/path_to_directory)] 
+    scenario_names = [ f.name for f in scandir(path_to_directory) if f.is_dir() ]
+    if len(scenario_names) == 0:
+        # use sub folder
+        scenario_names = [path.basename(path_to_directory)]
     return scenario_names
 # TODO: just use line_list for all below
 def find_venting_from_fds(path_to_file):

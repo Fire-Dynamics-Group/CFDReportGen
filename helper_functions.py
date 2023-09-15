@@ -5,13 +5,16 @@ from constants import devc_chart_constants
 from pathlib import Path
 # from scen_object_helper_functions import find_all_files_of_type
 import os
-from os import listdir
+from os import listdir, scandir
 from pathlib import Path
 
 def return_all_subfolders(path_to_dir):
+    return [ f.name for f in scandir(path_to_dir) if f.is_dir() ]
+
     return [ item for item in os.listdir(path_to_dir) if os.path.isdir(os.path.join(path_to_dir, item)) ]
 
 def return_paths_to_files(scenario_name, dir_path='graph_generation', new_folder_structure=False):
+    error_list = []
     if new_folder_structure == False:
         path_to_scen_directory = f'./{dir_path}/{scenario_name}/Graph_{scenario_name}'
         path_to_fds_file = f'{path_to_scen_directory}/Graph_{scenario_name}.fds'
@@ -19,23 +22,45 @@ def return_paths_to_files(scenario_name, dir_path='graph_generation', new_folder
         path_to_hrr_file = f'graph_generation\{scenario_name}\Graph_{scenario_name}\Graph_{scenario_name}_hrr.csv'
 
     else:
-        path_to_scen_directory = f'{dir_path}/{scenario_name}'
+        # check if any nested folders; if not don't add scenario_name
+        trial_path = f'{dir_path}/{scenario_name}'
+        if os.path.exists(trial_path):
+            path_to_scen_directory = trial_path
+        else:
+            # checks if pointed directly towards the folder with one run only, no subfolders
+            path_to_scen_directory = dir_path
         # TODO: check if intermediate folder
         has_nested_folder = return_all_subfolders(path_to_scen_directory)
-        if len(has_nested_folder) > 0:
+        if len(has_nested_folder) > 0: # should error if more than one folder
             path_to_scen_directory += f'/{has_nested_folder[0]}'
-        fds_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix=".fds")[0]
+            if len(has_nested_folder) > 1:
+                error_list.append(f"More than one folder found in {path_to_scen_directory} for scenario:{scenario_name}. Please remove non relevant folders.") 
+
+        fds_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix=".fds")
+        if len(fds_name) == 0:
+            error_list.append(f"No fds file found in {path_to_scen_directory} for scenario:{scenario_name}. Please add fds file.")
+            fds_name = 'error'
+        else:
+            fds_name = fds_name[0]
         devc_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix="devc.csv")
         if len(devc_name) > 0 :
             devc_name = devc_name[0]
-        hrr_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix="hrr.csv")[0]
+        else:
+            error_list.append(f"No devc file found in {path_to_scen_directory} for scenario:{scenario_name}. Please add devc file.")
+            devc_name = 'error'
+        hrr_name = find_all_files_of_type(path_to_directory=path_to_scen_directory, suffix="hrr.csv")
+        if len(hrr_name) > 0 :
+            hrr_name = hrr_name[0]
+        else:
+            error_list.append(f"No hrr file found in {path_to_scen_directory} for scenario:{scenario_name}. Please add hrr file.")
+            hrr_name = 'error'
 
         # find all files - ones with x and y ending
         path_to_hrr_file = f'{path_to_scen_directory}/{hrr_name}'
         path_to_fds_file = f'{path_to_scen_directory}/{fds_name}'
         path_to_devc_file = f'{path_to_scen_directory}/{devc_name}'
 
-    return path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file
+    return path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list
 
 def find_all_files_of_type(path_to_directory, suffix=".csv"):
     filenames = listdir(path_to_directory)

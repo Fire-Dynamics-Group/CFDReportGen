@@ -4,7 +4,7 @@ import json
 from helper_functions import return_paths_to_files, read_from_csv_skip_first_row, get_worst_case_devc, compute_last_time_step_not_tenable, max_or_min_is_worse, find_worst_in_column
 from scen_object_helper_functions import is_sprinklered, find_venting_from_fds, return_scenario_names
 from fds_output_utils import find_door_opening_times
-
+import PySimpleGUI as sg
 
 # TODO: move below to helper_functions.py
 def create_scenario_object(path_to_directory="graph_generation"):
@@ -36,8 +36,14 @@ def create_scenario_object(path_to_directory="graph_generation"):
         }
 
         # path_to_directory
-        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file = return_paths_to_files(scenario_name=scen_key, dir_path=path_to_directory, new_folder_structure=True)
+        # TODO: have informative error if any of these files are not found
+        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name=scen_key, dir_path=path_to_directory, new_folder_structure=True)
 
+        if len(error_list) > 0:
+            return scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios, error_list
+            # TODO: return error message
+            # TODO: don't action rest of function
+            # sg.popup_error("Error", '\n\n'.join(error_list))
 
         if "FSA" in scen_key:
             firefighting = True
@@ -215,7 +221,7 @@ def create_scenario_object(path_to_directory="graph_generation"):
     jsonFile.write(jsonString)
     jsonFile.close()
     # 
-    return scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios
+    return scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios, error_list
 
 if __name__=='__main__':
     path_to_directory = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\31. Camp Hill Gardens Corridor'
