@@ -2,18 +2,13 @@ from pathlib import Path
 import datetime
 import sys
 import os
-import re
-from os import listdir
-from os.path import isfile, join
 
+print("path: ",os.path.dirname(sys.executable))
 import PySimpleGUI as sg
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm, Inches, Pt, RGBColor
 from docx import Document
-from docx.enum.style import WD_STYLE_TYPE
-import jinja2
 
-print("path: ",os.path.dirname(sys.executable))
 # https://docxtpl.readthedocs.io/en/latest/
 from constants import font_name_light
 from variable_text import Extended_travel_1, Extended_travel_2
@@ -22,12 +17,43 @@ from scenarios_object import create_scenario_object
 from scen_object_helper_functions import return_fds_version
 from report_gen_helper_functions import scen_results_values
 from hrr_graph import run_CFD_charts
-from validate import validate_form, generate_error_message
-
+from validate import validate_form, generate_error_message, scenario_types
 
 document_name = "Template CFD Report.docx"
-document_path = Path(__file__).parent /"CFD Word Template"/document_name
-doc = DocxTemplate(document_path)
+# check if file exists, if not use binary
+document_path = f"{document_name}" # Path(__file__).parent /"CFD Word Template"/document_name
+if os.path.exists(document_path):
+    doc = DocxTemplate(document_path)
+# else:
+#         # Decode the base64 string to bytes
+#     TEMPLATE_BASE64 = ''
+#     template_bytes = base64.b64decode(TEMPLATE_BASE64)
+
+#     # Create a BytesIO object and load it into DocxTemplate
+#     buffer = io.BytesIO(template_bytes)
+#     tpl = DocxTemplate(buffer)
+# #     # Decode the base64 string back to bytes
+# #     def decode_base64_to_bytes(base64_string):
+# #         return base64.b64decode(base64_string.encode('utf-8'))
+
+# #     # Create a Word Document from the embedded base64 string
+# #     def create_word_from_template():
+# #         template_bytes = decode_base64_to_bytes(TEMPLATE_BASE64)
+# #         buffer = io.BytesIO(template_bytes)
+# #         document = DocxTemplate(buffer)
+
+# #         # buffer.close()
+# #         # Do something with the document, e.g., save or add content
+# #         return document
+# #     doc = create_word_from_template()
+#     context = {
+#     'my_placeholder': 'This is replaced text',
+#     # add more placeholders here
+# }
+
+# # # Render the template
+#     tpl.render(context)
+#     doc.render(context)
 
 
 def Delete_row_in_table(table, row):
@@ -108,23 +134,44 @@ while True:
         if values['PATH']:
             values['PATH'] = r"{}".format(values['PATH'])
         is_valid, values_invalid = validate_form(values)
+        files_error_message = ""
         if is_valid == False:
             error_message = generate_error_message(values_invalid)
             sg.popup_error(error_message,title="Form Input Error")
-        else:        
-            values["TODAYS_DATE"] = today.strftime("%d-%m-%Y")
-            # assumed if first scenario has sprinklers all do 
-            chart_names = [ f for f in listdir(Path(__file__).parent/"png_charts") if isfile(join(Path(__file__).parent/"png_charts", f)) ]
-
-            path_to_directory="graph_generation"
-            # TODO: get path from user - perhaps initial input before further one
-            # C:\Users\IanShaw\Dropbox\Projects CFD\25. Claridges\Runs
-            # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\26. Breams Building\Runs")
+        else:
             path_to_root_directory = f"{values['PATH']}"
             # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
             # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final")
             # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\1. Graph Generation\Test Cases\Test4")
-            scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios = create_scenario_object(path_to_directory=path_to_root_directory)
+            
+            '''
+            # TODO: check folder structure
+            # if no subfolder -> message to user to add subfolder
+            # if fds file not named appropriately -> message to user to rename
+            # 
+            '''
+            # have path_to_dir changed if required
+            # trial_path = f'{path_to_root_directory}/{scenario_name}'
+
+            scenarios_object, scenario_names, FSA_scenarios, MoE_scenarios, error_list = create_scenario_object(path_to_directory=path_to_root_directory)
+            if len(error_list) > 0:
+                sg.popup_error("Error", '\n\n'.join(error_list))
+            # have popup -> x MOE runs, y FSA runs -> ask to continue or rename folders with 'FSA'
+            files_error_message = scenario_types(FSA_scenarios, MoE_scenarios)
+            # sg.popup_error(files_error_message,title="Form Input Error")
+            sg.popup("Scenarios Found:", files_error_message)
+        if is_valid and len(error_list) == 0:        
+            values["TODAYS_DATE"] = today.strftime("%d-%m-%Y")
+
+            # TODO: get path from user - perhaps initial input before further one
+            # C:\Users\IanShaw\Dropbox\Projects CFD\25. Claridges\Runs
+            # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\26. Breams Building\Runs")
+
+            if len([ f.name for f in os.scandir(path_to_root_directory) if f.is_dir() ]):
+                # path_to_root_directory = path_to_root_directory
+                pass
+            else:
+                path_to_root_directory = os.path.dirname(path_to_root_directory) # need path?
             # go first scenario - all should be the same version
             fds_version = return_fds_version(path_to_directory=f'{path_to_root_directory}/{scenario_names[0]}')
 
@@ -240,8 +287,13 @@ while True:
 
             # jinja should output x amount of scenario loops?
             # TODO: use output path above for images to be saved to
-            new_dir_path = Path(__file__).parent / "outputReports"/f"{values['PROJECT_NAME']}"
+            if os.path.isdir("outputReports"):
+                new_dir_path = f"outputReports/{values['PROJECT_NAME']}" #Path(__file__).parent / "outputReports"/f"{values['PROJECT_NAME']}"
+            else:
+                new_dir_path = f"{values['PROJECT_NAME']}"
+            
             os.mkdir(new_dir_path)
+            
             run_CFD_charts(path_to_root_directory, scenario_names, new_dir_path)
             # TODO: output charts into report
             # scope images in folder
@@ -679,9 +731,10 @@ while True:
                     populate_results_section(firefighting=True)
 
             document.save(output_path)
-            os.startfile(output_path)
+            startup_path = rf'{os.path.abspath(os.getcwd())}/{output_path}'
+            os.startfile(startup_path)
 
-    window.close()
+            window.close()
 
 
     # Below for without gui
