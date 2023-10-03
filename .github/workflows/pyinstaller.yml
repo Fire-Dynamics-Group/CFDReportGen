@@ -1,4 +1,4 @@
-name: Build with PyInstaller to Exe Branch
+name: Build with PyInstaller to main Branch
 
 on:
   push:
