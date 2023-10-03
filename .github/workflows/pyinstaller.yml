@@ -3,7 +3,7 @@ name: Build with PyInstaller to Exe Branch
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build:
