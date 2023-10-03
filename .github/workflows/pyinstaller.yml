@@ -1,0 +1,59 @@
+name: Build with PyInstaller to Exe Branch
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Increment version
+      id: increment_version
+      run: |
+        # Use PowerShell commands to read and increment the version
+        $version = Get-Content exe_version.txt
+        $major, $minor = $version -split "\."
+        $minor = [int]$minor + 1
+        $new_version = "$major.$minor"
+        $new_version > exe_version.txt
+        echo "::set-output name=new_version::$new_version"
+
+        
+    - name: Build with PyInstaller
+      run: pyinstaller --name open_plan${{ steps.increment_version.outputs.new_version }} --onefile -w auto_report.py
+        
+    - name: List files in dist directory
+      run: dir .\dist
+      
+    - name: Upload to Dropbox
+      run: |
+        curl "https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh" -o dropbox_uploader.sh
+        chmod +x dropbox_uploader.sh
+        echo "OAUTH_ACCESS_TOKEN=${{ secrets.DROPBOX_TOKEN }}" > dropbox_uploader.conf
+        ./dropbox_uploader.sh upload ./dist/open_plan${{ steps.increment_version.outputs.new_version }}.exe "/R&D/Common Corridor CFD Report Generator"
+      shell: bash
+    - name: Commit and push artifact and version update
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add exe_version.txt
+        git commit -m "Add open_plan${{ steps.increment_version.outputs.new_version }}.exe  and update version"
+        git push
+

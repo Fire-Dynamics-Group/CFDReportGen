@@ -138,7 +138,15 @@ while True:
         if is_valid == False:
             error_message = generate_error_message(values_invalid)
             sg.popup_error(error_message,title="Form Input Error")
-        else:
+        else:        
+            values["TODAYS_DATE"] = today.strftime("%d-%m-%Y")
+            # assumed if first scenario has sprinklers all do 
+            # chart_names = [ f for f in listdir("png_charts") if isfile(join("png_charts", f)) ]
+
+            path_to_directory="graph_generation"
+            # TODO: get path from user - perhaps initial input before further one
+            # C:\Users\IanShaw\Dropbox\Projects CFD\25. Claridges\Runs
+            # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\26. Breams Building\Runs")
             path_to_root_directory = f"{values['PATH']}"
             # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
             # path_to_root_directory = Path(r"C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final")
