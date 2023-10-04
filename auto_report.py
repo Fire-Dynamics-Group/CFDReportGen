@@ -493,29 +493,6 @@ while True:
             # find [REF]
             # use index or filter where "[REF]" in para.text 
             # ref_paragraphs = find_paragraghs_containing_string(target_string="[REF]")
-            
-
-
-            # # find reference from text, or previously mark?? with ref id
-            # # central version can have id's 
-            # # future pull from excel doc
-            # # or object e.g. refs.adb
-            # # add id's
-            # # find ids next to ref
-            # # loop through object keys
-            # # paras_with_refs = [para.text for para in document.paragraphs if "[REF]" in para.text]
-            # ref_keys = list(reference_object.keys())
-            # for index, value in enumerate(ref_paragraphs):
-            #     if any(x in value for x in ref_keys):
-            #         ref_id_strings = [f for f in ref_paragraphs[index].split() if "REF" in f]
-            #         # for each get the ref_key
-            #         for id_string in ref_id_strings:
-            #             for item in ref_keys:
-            #                 if item in id_string:
-            #                     pass
-            #                     # append to ref_array 
-            #                     # find length of ref_array -> number
-            #                     # insert number - formatted etc
 
             # TODO: find reference table
             # extract references from csv
