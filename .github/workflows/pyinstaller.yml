@@ -37,7 +37,7 @@ jobs:
 
         
     - name: Build with PyInstaller
-      run: pyinstaller --name open_plan${{ steps.increment_version.outputs.new_version }} --onefile -w auto_report.py
+      run: pyinstaller --name cfd_report_gen${{ steps.increment_version.outputs.new_version }} --onefile -w auto_report.py
         
     - name: List files in dist directory
       run: dir .\dist
@@ -46,13 +46,14 @@ jobs:
       run: |
         chmod +x dropbox_uploader.sh
         echo "OAUTH_ACCESS_TOKEN=${{ secrets.DROPBOX_TOKEN }}" > dropbox_uploader.conf
-        ./dropbox_uploader.sh upload ./dist/open_plan${{ steps.increment_version.outputs.new_version }}.exe "/exe/"
+        ./dropbox_uploader.sh upload ./dist/cfd_report_gen${{ steps.increment_version.outputs.new_version }}.exe "/exe/"
       shell: bash
     - name: Commit and push artifact and version update
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add exe_version.txt
+        git add dist/cfd_report_gen${{ steps.increment_version.outputs.new_version }}.exe
         git commit -m "updated version"
         git push
 
