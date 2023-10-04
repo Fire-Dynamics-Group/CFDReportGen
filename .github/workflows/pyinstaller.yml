@@ -20,13 +20,6 @@ jobs:
         
     - name: List files in dist directory
       run: dir .\dist
-
-    - name: Upload to Dropbox
-      run: |
-        chmod +x dropbox_uploader.sh
-        echo "OAUTH_ACCESS_TOKEN=${{ secrets.DROPBOX_TOKEN }}" > dropbox_uploader.conf
-        ./dropbox_uploader.sh upload ./dist/cfd_report_gen${{ steps.increment_version.outputs.new_version }}.exe "/exe/"
-      shell: bash
             
     - name: Commit and push artifact and version update
       run: |
