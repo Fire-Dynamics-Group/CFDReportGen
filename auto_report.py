@@ -90,7 +90,7 @@ def Delete_row_in_table(table, row):
 
 
 
-def create_inline_image(image_file, template=doc):
+def create_inline_image(image_file, template):
     return InlineImage(template, image_descriptor=image_file, width=Inches(6), height=Inches(4)) # can add relative path entry box??
 # charts= {}
 # for chart in chart_names:
