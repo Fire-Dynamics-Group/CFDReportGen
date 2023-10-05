@@ -66,15 +66,8 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
         firefighting = True
     else: 
         firefighting = False
-    # ../FSA Test 2/Graph_FSA_Test_2
 
-    # Examples of data that can be easily accessed
-    # print(sim.meshes, sim.surfaces, sim.slices, sim.data_3d, sim.smoke_3d, sim.isosurfaces, sim.particles, sim.obstructions)
-    # for slice in sim.slices:
-        # print(f"Slice Type [2D/3D]: {slice.type}\n  Quantity: {slice.quantity.name}\n", 
-        #       f" Physical Extent: {slice.extent}\n  Orientation [1/2/3]: {slice.orientation}\n")
-    # get the TEMPERATURE slice(s)
-                # color
+    # color
     color_map =  [ # RGB then fourth entry is alpha
         [0.00000000e+00, 0.00000000e+00, 9.09982175e-01, 1.00000000e+00],
         [0.00000000e+00, 2.21568627e-01, 1.00000000e+00, 1.00000000e+00],

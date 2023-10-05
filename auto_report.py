@@ -24,6 +24,10 @@ document_name = "Template CFD Report.docx"
 document_path = f"{document_name}" # Path(__file__).parent /"CFD Word Template"/document_name
 if os.path.exists(document_path):
     doc = DocxTemplate(document_path)
+else:
+    doc = False
+
+    # throw error no template doc!!
 # else:
 #         # Decode the base64 string to bytes
 #     TEMPLATE_BASE64 = ''
@@ -123,6 +127,9 @@ layout = [
 window = sg.Window("Report Generator", layout, element_justification="right")
 
 while True:
+    if not doc:
+        sg.popup_error("Error", "Template CFD Report.docx should be located in the same folder as this exe file")
+        break 
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == "Exit":
         break
