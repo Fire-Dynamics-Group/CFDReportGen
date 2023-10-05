@@ -1,6 +1,8 @@
 import math
-from helper_functions import devc_chart_constants, round_to
+from helper_functions import devc_chart_constants
 
+def round_to(value, closest_to=0.1):
+        return round(value, 1) 
 # functions for both bullet points and tables for scenario results summary
 def scen_results_values(scenario, scenarios_object, firefighting=False):
     

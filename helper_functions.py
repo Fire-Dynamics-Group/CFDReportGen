@@ -66,9 +66,6 @@ def find_all_files_of_type(path_to_directory, suffix=".csv"):
     filenames = listdir(path_to_directory)
     return [ f for f in filenames if f.endswith( suffix )]
 
-# TODO: move to misc utils
-def round_to(value, closest_to=0.1):
-        return round(value, 1) 
 
 def filter_dataframe_by_column_starting_with_string(df, string):
     return df.loc[:, df.columns.str.startswith(string)]
