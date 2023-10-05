@@ -54,6 +54,8 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
     # create new folder
     if not save_in_cfd_folder:
         base_dir_path = '.\outputSlices'
+        if not os.path.isdir(base_dir_path):
+            os.mkdir(base_dir_path)
         new_dir_path = f'{base_dir_path}\{project_name}'
     else:
         new_dir_path = f'{save_path}\{project_name}'
@@ -265,13 +267,13 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
 
 # Creates an instance of a simulation master-class which manages all data for a given simulation
 test_resi = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Research CFD\1. Graph Generation\Test Cases\Test1\S1_FSA'
-new_resi = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_West_Core_FSA'
-latest_resi = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_East_Core_FSA'
-desktop_resi = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_West_Core_FSA-DESKTOP-NASJ970'
-west_l2 = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L2_West_Core_FSA'
-path_to_root_directory = (r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
-fsa1 = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models\FS02-T-FSA"
-sensitivity = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA"
+new_resi = r'C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final\L1_West_Core_FSA'
+latest_resi = r'C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final\L1_East_Core_FSA'
+desktop_resi = r'C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final\L1_West_Core_FSA-DESKTOP-NASJ970'
+west_l2 = r'C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final\L2_West_Core_FSA'
+path_to_root_directory = (r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
+fsa1 = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models\FS02-T-FSA"
+sensitivity = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA"
 # setup loop for path_to_root_directory
 def run_slice_loop(
             path_to_root_directory,

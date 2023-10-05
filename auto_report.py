@@ -341,12 +341,6 @@ while True:
                     set_chart("pres")
                 print("test")
 
-                
-            # # should have scenario name/number in title of charts
-            # values[f"SCENARIO_{scenario_index}_PRESSURE_CC_MOE"] = charts["Pressure cc_pres__chart.png"] 
-            # values["SCENARIO_1_HRR_CC_MOE"] = charts["hrr_chart.png"]
-            # values["SCENARIO_1_VELOCITY_CC_MOE"] = charts["Velocity cc_vel__chart.png"]
-            # values["SCENARIO_1_VISIBILITY_CC_MOE"] = charts["Visibility cc_vis__chart.png"]
             insert_charts(new_dir_path)
             print("values: ", values)
             # TODO: scope if only one of either FSA or MOE and if so input text into bullets for scen overview using jinja
@@ -405,12 +399,6 @@ while True:
                     pass
 
             if values["BS9991"] == True: # below irrespective of TD's
-                # inputs
-            #     values["Guidance_1"] = BS9991_1
-            #     values["Guidance_2"] = BS9991_2
-            # else:
-            #     values["Guidance_1"] = ADB_1
-            #     values["Guidance_2"] = ADB_2
                 pass
             # TODO: scope if sprinklers provided from fds file
             # must be after button pressed!!
@@ -482,8 +470,7 @@ while True:
                         para.add_run(" ")
                         para.add_run(ref_info.replace('"', ''))
                         break
-            # for index in range(10):
-            #     delete_paragraph(ref_table_paras[-(index+1)])
+
             # TODO: remove excess rows
             def delete_excess_refs(starting_rows, required_rows, paragraphs):
                 rows_to_remove = starting_rows - required_rows
