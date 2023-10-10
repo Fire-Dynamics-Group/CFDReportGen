@@ -62,7 +62,10 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
 
     
     if not os.path.isdir(new_dir_path):
-        os.mkdir(new_dir_path)
+        if save_path is None:
+            new_dir_path = f'.\outputSlices\{project_name}'
+        if not os.path.isdir(new_dir_path):
+            os.mkdir(new_dir_path)
 
     if "FSA" in path_to_directory:
         firefighting = True
@@ -195,6 +198,7 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
             
             
             # TODO: loop through timesteps
+            interval_secs = 100
             for time_step in range(t_start, t_max, interval_secs):
             # if firefighting:
             #     slc = t_slice.get_nearest(z=2) # how to get programmatically??
@@ -242,24 +246,25 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
                 # current_cmap.set_bad('white')
                 # mask_value = current_quantity_object["tenable_limit_moe"]
                 # data = np.ma.masked_equal(data, mask_value)
-                plt.imshow(data, 
-                            origin='lower',
-                            vmin=current_quantity_object["v_min"],
-                            vmax=current_quantity_object["v_max"],
-                            cmap=current_cmap,
-                            # interpolation='nearest',
-                            interpolation='antialiased',
-                        extent=slc.extent.as_list())
-                # plt.colorbar(label=f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
-                # plt.xlabel(f'{slc.extent_dirs[0]} / m')
-                # plt.ylabel(f'{slc.extent_dirs[1]} / m')    
-                plt.axis('off') 
-                name_of_chart = f'{current_type}_2dslice{twoD_slice}@{slc.times[it]}secs'
-                # TODO: create new folder each run
-                # add to project folder if ran from outwith of this script
-                # new_dir_path = './outputSlices'
-                # plt.show()
-                save_chart_high_res(name_of_chart, new_dir_path, 1200)      
+                for interp in ['nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 'hanning', 'hamming', 'hermite', 'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']:
+                    plt.imshow(data, 
+                                origin='lower',
+                                vmin=current_quantity_object["v_min"],
+                                vmax=current_quantity_object["v_max"],
+                                cmap=current_cmap,
+                                # interpolation='nearest',
+                                interpolation=interp,
+                            extent=slc.extent.as_list())
+                    # plt.colorbar(label=f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
+                    # plt.xlabel(f'{slc.extent_dirs[0]} / m')
+                    # plt.ylabel(f'{slc.extent_dirs[1]} / m')    
+                    plt.axis('off') 
+                    name_of_chart = f'{current_type}_2dslice{twoD_slice}@{slc.times[it]}secs{interp}'
+                    # TODO: create new folder each run
+                    # add to project folder if ran from outwith of this script
+                    # new_dir_path = './outputSlices'
+                    # plt.show()
+                    save_chart_high_res(name_of_chart, new_dir_path, 1200)      
                 # plt.savefig(f'figs/{name_of_chart}_{i}.svg', bbox_inches='tight')
                 # plt.close()
                 counter += 1
@@ -274,22 +279,25 @@ west_l2 = r'C:\Users\IanShaw\Dropbox\Projects CFD\22. Sweet Street\Resi\Final\L2
 path_to_root_directory = (r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
 fsa1 = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models\FS02-T-FSA"
 sensitivity = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA"
+black_horse = r"C:\Users\IanShaw\Dropbox\Projects CFD\38. No1 Blackhorse Lane\Models for report 2" #\FS1_MOE
+test = r"C:\Users\IanShaw\OneDrive - Fire Dynamics Group Limited\Desktop\Test CFD Common Corridor"
 # setup loop for path_to_root_directory
 def run_slice_loop(
             path_to_root_directory,
             save_path=None,
             runs_to_skip=None,
-            runs_to_not_skip=None
+            runs_to_not_skip=None,
+            save_in_cfd_folder=True
 ):
 
     filenames = listdir(path_to_root_directory)
     for run in filenames:
         current_path = (f'{path_to_root_directory}\{run}')
         # if runs_to_skip is None or runs_to_skip not in run:
-        if len([f for f in (runs_to_not_skip) if f in run]) > 0:
+        if runs_to_not_skip is None or len([f for f in (runs_to_not_skip) if f in run]) > 0 or runs_to_skip is None:
             obtain_slice(
                 path_to_directory=current_path, 
-                save_in_cfd_folder=True, 
+                save_in_cfd_folder=save_in_cfd_folder, 
                 save_path=save_path
                 )
 
@@ -301,5 +309,13 @@ def run_slice_loop(
 #             runs_to_not_skip=["FS08"]
 
 # )
-obtain_slice(path_to_directory=sensitivity)
+run_slice_loop(
+            path_to_root_directory=black_horse,
+            # save_path=r'outputSlices/No1 Blackhorse Lane',
+            # runs_to_skip="FS01-T-MoE"
+            # runs_to_not_skip=["FS14", "FS15", "FS16"]
+            save_in_cfd_folder=True
+
+)
+# obtain_slice(path_to_directory=test)
 # was on FS14
