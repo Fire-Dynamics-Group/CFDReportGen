@@ -52,7 +52,7 @@ devc_chart_constants = {
         "chart_name": "Velocity",
         "units_abbreviated_for_graph": "m/s",
         "tenable_limit_moe": 5, 
-        "worst_case": "min"
+        "worst_case": "max"
     },
 }
 

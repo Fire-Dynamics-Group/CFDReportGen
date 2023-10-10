@@ -282,6 +282,7 @@ def chart_devc(
 
 def save_chart_high_res(name_of_chart, new_dir_path, dpi=1200):
     plt.savefig(f'{new_dir_path}/{name_of_chart}_chart.png', format='png', dpi=dpi)
+    plt.close()
 
 # Likely should be after flat door opens - is this in the fds file??
 def find_column_with_most_frequent_min(df):
