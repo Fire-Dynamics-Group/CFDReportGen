@@ -1,6 +1,7 @@
 Test Cases/
 outputReports/
 outputSlices/
+outputCharts/
 env/
 dist/
 build/
