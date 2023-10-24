@@ -559,8 +559,9 @@ if __name__=='__main__':
     # path_to_fds_file = fr'{path_to_root_directory}\FS5_MOE\FS5_MOE.fds'
     from os import listdir
     # FS5_MOE_devc.csv
+    # TODO: allow for single folder; if no folder inside; don't list dir
     for current_name in listdir(path_to_root_directory):
-        if current_name == '00_FS3_FSA':
-            path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name=current_name, dir_path=path_to_root_directory, new_folder_structure=True)
-            run_hrr_charts(path_to_fds_file, path_to_hrr_file,new_dir_path=new_dir_path,firefighting=True)
-            run_devc_charts(path_to_devc_file, path_to_fds_file, new_dir_path,firefighting=True)
+        firefighting = "FSA" in current_name
+        path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name=current_name, dir_path=path_to_root_directory, new_folder_structure=True)
+        run_hrr_charts(path_to_fds_file, path_to_hrr_file,new_dir_path=new_dir_path,firefighting=firefighting)
+        run_devc_charts(path_to_devc_file, path_to_fds_file, new_dir_path,firefighting=firefighting)
