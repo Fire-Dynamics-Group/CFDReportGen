@@ -18,6 +18,7 @@ from scen_object_helper_functions import return_fds_version
 from report_gen_helper_functions import scen_results_values
 from hrr_graph import run_CFD_charts
 from validate import validate_form, generate_error_message, scenario_types
+from report_draw import run_all_report_draw
 
 def run_report():
     document_name = "Template CFD Report.docx"
@@ -54,23 +55,20 @@ def run_report():
     today = datetime.datetime.today()
 
     '''TODO: move gui to own script -> allowing path to be entered manually '''
-    # GUI input boxes etc in layout
     layout = [
         [sg.Text("Path to runs' root directory:"), sg.Input(key="PATH", do_not_clear=True)],        
         [sg.Text("Client name:"), sg.Input(key="CLIENT_NAME", do_not_clear=True)],
             [sg.Text("Project name:"), sg.Input(key="PROJECT_NAME", do_not_clear=True)],
             [sg.Text("Project Locations:"), sg.Input(key="PROJECT_LOCATION", do_not_clear=True, size=(20,1))],
-            [sg.Text("Senior's email prefix:"), sg.Input(key="EMAIL_PREFIX", do_not_clear=True, size=(20,1))],
+            [sg.Text("Senior's first name:"), sg.Input(key="EMAIL_PREFIX", do_not_clear=True, size=(20,1))],
             [sg.Text("Extended Travel Distances:"), 
             sg.Radio('True', group_id="EXTENDED_TRAVEL", key="HAS_EXTENDED_TRAVEL",default=True),
             sg.Radio('False', group_id="EXTENDED_TRAVEL", key="NO_EXTENDED_TRAVEL")],
-            # if values["HAS_EXTENDED_TRAVEL"]:
             [sg.Text("Max Travel Distance:"), sg.Input(key="MAX_TD", do_not_clear=True, size=(20,1)), sg.Text("m")],
-            # guidance doc
             [sg.Text("Guidance Doc:"), 
             sg.Radio('BS9991', group_id="GUIDANCE", key="BS9991",default=True),
             sg.Radio('ADB', group_id="GUIDANCE", key="ADB")],
-            # [sg.Text("Extended Travel Distances:"), sg.Listbox((["True", "False"]), size=(20,4), enable_events=False, key='HAS_EXTENDED_TRAVEL')],
+            [sg.Image(filename='FDAI_grey.png', key='IMAGE')],
             [sg.Button("Create Report"), sg.Exit()], 
     ]
 
@@ -88,8 +86,6 @@ def run_report():
                 # set values
                 is_valid = True
                 error_list = []
-                values['PATH'] = r'C:\Users\IanShaw\OneDrive - Fire Dynamics Group Limited\Desktop\Test CFD Common Corridor'
-                values['PATH'] = r'C:\Users\IanShaw\Dropbox\Projects CFD\38. No1 Blackhorse Lane\Models for report 2'
                 values['PATH'] = r'C:\Users\IanShaw\Dropbox\Projects CFD\29. Transport House Common Corridor\Models\Final Runs'
                 path_to_root_directory = values['PATH']
                 values['CLIENT_NAME'] = "Client Name"
@@ -114,8 +110,6 @@ def run_report():
                 sg.popup_error(error_message,title="Form Input Error")
             else:        
                 values["TODAYS_DATE"] = today.strftime("%d-%m-%Y")
-                # assumed if first scenario has sprinklers all do 
-                # chart_names = [ f for f in listdir("png_charts") if isfile(join("png_charts", f)) ]
                 path_to_root_directory = f"{values['PATH']}"
                 
                 '''
@@ -129,9 +123,7 @@ def run_report():
                 values["scenario_names"] = scenario_names
                 if len(error_list) > 0:
                     sg.popup_error("Error", '\n\n'.join(error_list))
-                # have popup -> x MOE runs, y FSA runs -> ask to continue or rename folders with 'FSA'
                 files_error_message = scenario_types(FSA_scenarios, MoE_scenarios)
-                # sg.popup_error(files_error_message,title="Form Input Error")
                 sg.popup("Scenarios Found:", files_error_message)
             if is_valid and len(error_list) == 0:        
                 values["TODAYS_DATE"] = today.strftime("%d-%m-%Y")
@@ -311,12 +303,13 @@ def run_report():
                         set_chart("vis")
                         set_chart("temp")
                         set_chart("pres")
+                        set_chart("vel")
                         appendix_obj.append(current_scen_data)
                     values["APPENDIX"] = appendix_obj
                     print("test")
 
                     
-                # # should have scenario name/number in title of charts
+                # TODO: scope that corridor charts for FSA are only added if 4m available
                 insert_charts(new_dir_path)
                 print("values: ", values)
                 # TODO: scope if only one of either FSA or MOE and if so input text into bullets for scen overview using jinja
@@ -367,7 +360,13 @@ def run_report():
 
                 ref_order = add_refs_in_order()
                 ref_number(ref_order)
+                '''
+                    fds figure object
 
+                '''
+                # dwelling path, scenario,
+                fig_charts = run_all_report_draw(doc, path_to_root_directory, scenario_names)
+                values["FDS_FIGURES"] = fig_charts
                 # Render the template, save new word document & inform user
                 doc.render(values)
                 output_path = f"{new_dir_path}/{values['PROJECT_NAME']}-CFD Report.docx"
@@ -391,7 +390,7 @@ def run_report():
                     font.color.rgb = RGBColor(64,64,64) #gray color # to be pulled from object
                     font.bold = is_bold
 
-                ref_repo_file = Path(r'C:\Users\IanShaw\Fire Dynamics Group Limited\Research - Ian\CFD Report Generator\other\references.csv')
+                ref_repo_file = 'references.csv'
                 # TODO: remove unused lines
                 with open(ref_repo_file, "r+", encoding="utf8") as f:
                     ref_repo_list = f.readlines()[1:]
@@ -643,12 +642,7 @@ def run_report():
                                     replace_table_cell_content(cell=row_cells[5], replacement_text=str(round_to(worst_temp)))
                                     replace_table_cell_content(cell=row_cells[-2], replacement_text=str((max_pressure_drop)))
                                     replace_table_cell_content(cell=row_cells[-1], replacement_text=meet_criteria)
-                '''
-                    FINAL CHARTS: have 8 possible for FSA and MOE
-                    have no value if not FSA or MOE
-                    if x in moe scenario list
 
-                '''
                     
                 # if MoE >0; then will be first table
                 if len(MoE_scenarios) > 0:

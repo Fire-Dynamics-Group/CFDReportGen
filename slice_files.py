@@ -3,12 +3,52 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 import os
-import itertools
+from PIL import Image, ImageChops
 from os import listdir
 
-from hrr_graph import save_chart_high_res
 
-quantity_types = ["PRESSURE", "SOOT VISIBILITY", "TEMPERATURE"]
+'''
+    where are the templates??
+'''
+
+
+# Trimming function
+def trim(im):
+    bg = Image.new(im.mode, im.size, im.getpixel((0, 0)))
+    diff = ImageChops.difference(im, bg)
+    diff = ImageChops.add(diff, diff, 2.0, -100)
+    bbox = diff.getbbox()
+    if bbox:
+        return im.crop(bbox)
+    else:
+        # Failed to find the borders, convert to "RGB"
+        return trim(im.convert('RGB'))
+
+# Function to trim and save image without resizing
+def trim_and_save_image(image_path):
+    with Image.open(image_path) as img:
+        # Trim the white space
+        trimmed_img = trim(img)
+        
+        # Save the trimmed image in PNG format
+        trimmed_img.save(image_path, format='PNG')
+
+# Function to save chart in high resolution and then trim the image
+def save_chart_high_res(name_of_chart, new_dir_path, dpi=1200):
+    if not os.path.exists(new_dir_path):
+        os.makedirs(new_dir_path)
+    
+    file_path = f'{new_dir_path}/{name_of_chart}_chart.png'
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    plt.savefig(file_path, format='png', dpi=dpi)
+    plt.close()
+    
+    # Trim the saved image without resizing
+    trim_and_save_image(file_path)
+
+
+quantity_types = ["PRESSURE", "SOOT VISIBILITY", "TEMPERATURE", "VELOCITY"]
 quantity_type_config = {
     "TEMPERATURE": {
         "v_max": 60,
@@ -33,22 +73,45 @@ quantity_type_config = {
         "cbar_reverse": True,
         "chart_name": 'Relative Pressure',
         "tenable_limit_moe": -60,
+    },
+    "VELOCITY": {
+        "v_max": 10,
+        "v_min": 0,
+        "units": "m/s",
+        "cbar_reverse": False,
+        "chart_name": 'Velocity',
+        "tenable_limit_moe": 5,        
     }
     }
 door_openings = {'opening_apartment': 150.0, 'closing_apartment': 170.0, 'opening_stair': 160.0, 'closing_stair': 180.0}
-# Creates an instance of a simulation master-class which manages all data for a given simulation
-# C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Research CFD\1. Graph Generation\Test Cases\Test1\S1_FSA
-# C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_West_Core_FSA
-# C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_East_Core_FSA
-def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_East_Core_FSA", door_openings=door_openings, t_max=300, t_start=60, interval_secs=40, save_in_cfd_folder=False, save_path=None):
+
+
+def return_2d_slices(path_to_directory):
+    array = []
+    slice_array = []
+    sim = fds.Simulation(path_to_directory)
+    t_slice = sim.slices
+    for i in range(len(str(t_slice))-1):
+    # end 1 before end
+        char = str(t_slice)[i]
+        next_char = str(t_slice)[i+1] 
+        if char == "2" and next_char == "D":
+            array.append("twoD")
+        elif char == "3" and next_char == "D":
+            array.append("threeD")
+    for twoD_slice in [i for i, x in enumerate(array) if x == "twoD"]:
+        slc = t_slice[twoD_slice]
+        slice_array.append(slc)
+    return slice_array
+
+def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L1_East_Core_FSA", door_openings=door_openings, t_max=300, t_start=60, interval_secs=40, save_in_cfd_folder=False, save_path=None, time_intervals=[60, 120, 180, 240, 300], slices_chosen=[0, 1, 2, 3]):
     # sim = fds.Simulation("./Graph_MoE_Test")
     
     sim = fds.Simulation(path_to_directory)
     def file_name_from_path(file_path):
         return os.path.splitext(os.path.basename(file_path))[0]
-    # TODO: Future: obtain project name from path_to_dir
-    project_name = path_to_directory.split(" CFD",1)[1]
-    project_name = project_name.replace("\\", "-")
+
+    project_name = os.path.basename(path_to_directory)
     if "office" not in project_name.lower():
         t_max = 300
     # create new folder
@@ -94,173 +157,101 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
 
     # TODO: find all quantity/parameter types
     slice_params = [x for x in list(quantity_type_config.keys()) if x in str(sim.slices)]
+    slice_array = return_2d_slices(path_to_directory)
+    chosen_slices = [slice_array[i] for i in slices_chosen]
     # TODO: then loop through types
-    for current_type in slice_params:
-        print(f'starting {current_type}')
-        
-        color_map_reversed = color_map[::-1]
-        cmap_reversed = array2cmpa(color_map_reversed)
-        cmap_forward = array2cmpa(color_map)
+    # TODO: find if they are z slices etc
+    slice_counter = 0
+    for slice in chosen_slices: # not velocity
+        current_slice = slice
 
-        current_quantity_object = quantity_type_config[current_type]
+        current_type = [x for x in quantity_types if x in current_slice.quantity.name]
+        if current_type:
+            current_type = current_type[0]
+            print(f'starting {current_type}')
+            
+            color_map_reversed = color_map[::-1]
+            cmap_reversed = array2cmpa(color_map_reversed)
+            cmap_forward = array2cmpa(color_map)
 
-        if current_quantity_object["cbar_reverse"]:
-            current_cmap = cmap_reversed
-        else:
-            current_cmap = cmap_forward
+            current_quantity_object = quantity_type_config[current_type]
 
-        # TODO: save one copy of colorbar
-        # norm = matplotlib.colors.Normalize(vmin=current_quantity_object["v_min"], vmax=current_quantity_object["v_max"])
-        # fig = plt.figure(figsize=(0.05, 8))
-        # ax = fig.add_axes([0.02, 0.045, 0.05, 0.8])
-        # cb1 = matplotlib.colorbar.ColorbarBase(
-        #                     ax,
-        #                     cmap=current_cmap,
-        #                     norm=norm
+            if current_quantity_object["cbar_reverse"]:
+                current_cmap = cmap_reversed
+            else:
+                current_cmap = cmap_forward
 
-        #                     )
-        # cb1.set_label(f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
-        img = plt.imshow(
-                            np.array([[0,1]]), 
-                            # origin='lower',
-                            vmin=current_quantity_object["v_min"],
-                            vmax=current_quantity_object["v_max"],
-                            cmap=current_cmap)
-        img.set_visible(False)
-        plt.axis('off')
-        plt.colorbar(label=f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
-        save_chart_high_res(name_of_chart=f'{current_type}_colourbar', new_dir_path=new_dir_path)
-        # plt.show()
-        plt.close()
-        # plt.colorbar(orientation="vertical")
+            img = plt.imshow(
+                                np.array([[0,1]]), 
+                                # origin='lower',
+                                vmin=current_quantity_object["v_min"],
+                                vmax=current_quantity_object["v_max"],
+                                cmap=current_cmap)
+            img.set_visible(False)
+            plt.axis('off')
+            # add orientation of slice
+            plt.colorbar(label=f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
+            save_chart_high_res(name_of_chart=f'{current_type}_colourbar', new_dir_path=new_dir_path)
+            # plt.show()
+            plt.close()
 
-    # type_index = 1 # 1 = visibility
-    # current_type = quantity_type_config[param]
-        t_slice = sim.slices.filter_by_quantity(current_type)
-
-        # loop through t_slice str 
-        array = []
-        for i in range(len(str(t_slice))-1):
-        # end 1 before end
-            char = str(t_slice)[i]
-            next_char = str(t_slice)[i+1] 
-            if char == "2" and next_char == "D":
-                array.append("twoD")
-            elif char == "3" and next_char == "D":
-                array.append("threeD")
-
-        
-        # if char ==2 and next char == D
-        # if char ==3 and next char ==D
-        # add two or 3d to end of an array when met with them
-        # loop through 2d slices
-        print(t_slice)
-    # Slice([2D] quantity=Quantity('SOOT VISIBILITY'), cell_centered=False, extent=Extent([-11.20, 14.70] x [-18.40, 12.00] x [8.10, 8.10]), extent_dirs=('x', 'y'), orientation=3)
-        # select slice, by its distance to a given point
-        # got to filter for 2d indexes
-        for twoD_slice in [i for i, x in enumerate(array) if x == "twoD"]:
-            slc = t_slice[twoD_slice]
-            # save in file
-
-            # mesh = -1 # arbitrary - globalised to include all meshes
-            # slc_data = slc[mesh].data
+            print(current_slice)
+            '''
+                TODO: have other sub function that shows all the twoD slices -> 
+                then list sent in of required 
+            '''
+            slc = slice
             slc_data = slc.to_global()
             counter = 0
-            # try adding nan to smaller
-            if type(slc_data) is tuple:
-                a, b = slc_data
-                a = (a.copy().tolist())
-                b = (b.copy().tolist())
-                if len(a) < len(b):
-                    c = b.copy()
-                    c[:len(a)] += a
-                else:
-                    c = a.copy()
-                    c[:len(b)] = b + c[:len(b)]
-                slc_data = c
-                # slc_data = np.array(c)
-            # if len(slc_data) < 10:
-            #     # TODO: need to somehow stitch lists together - may need some nan's??
-            #     # loop through all entries
-            #     # need to add together arrays??
-            #     while counter < len(slc_data):
-            #         slc_data = slc_data[counter]
-                # pass
+            # # try adding nan to smaller
 
-            # print(slc_data)
-            # TODO: how to compute which slice has z value of 2?? -> should extend only in x and y
+            for time_step in time_intervals:
 
-            
-            
-            # TODO: loop through timesteps
-            for time_step in range(t_start, t_max, interval_secs):
-            # if firefighting:
-            #     slc = t_slice.get_nearest(z=2) # how to get programmatically??
-            #     time_step = t_max
-            # else:
-            #     slc = t_slice.get_nearest(x=20, y=20, z=2)
-                # time_step = door_openings['closing_apartment']+120
-            
-            # time_step = 500
-
-
-                # choose and output the time step, next to t=75 s
                 it = slc.get_nearest_timestep(time_step)
                 print(f"Time step: {it}")
                 print(f"Simulation time: {slc.times[it]}")
+                
+                temp_slc_data = slc_data
 
-                current = slc_data[it]
+                # why did the slices not always have that timestep? or the right amount of slices in them??
+
+                # if len(slc_data) > 1:
+                #     temp_slc_data = slc_data[0]
+                # else:
+                #     temp_slc_data = slc_data
+
+                current = temp_slc_data[it]
+
                 if type(current) == list:
                     current = np.array(current, dtype=np.float64)
-                #     # data = list(map(list, zip(*current)))
-                #     data = list(map(list, itertools.zip_longest(*current, fillvalue=None)))
-                # else:
-                #     data = current.T
 
                 data = current.T
 
-                # # only one mesh
-                # fig, axs = plt.subplots(2,3, sharex=True, sharey=True)
-                # for mesh in range(len(slc)):
-
-                #     slc_data = slc[mesh].data
-                #     print(slc_data)
-
-                #     axs.flat[mesh].imshow(
-                #             slc_data[it].T, 
-                #             origin='lower',
-                #             vmin=current_quantity_object["v_min"],
-                #             vmax=current_quantity_object["v_max"],
-                #             cmap=current_cmap,
-                #             extent=slc.extent.as_list())
-                # plt.axis('off')
-                # plt.show()
-
-                # # below for mapping a value with a colour
-                # current_cmap.set_bad('white')
-                # mask_value = current_quantity_object["tenable_limit_moe"]
-                # data = np.ma.masked_equal(data, mask_value)
                 plt.imshow(data, 
                             origin='lower',
                             vmin=current_quantity_object["v_min"],
                             vmax=current_quantity_object["v_max"],
                             cmap=current_cmap,
                             # interpolation='nearest',
-                            interpolation='antialiased',
+                            interpolation='gaussian',
                         extent=slc.extent.as_list())
-                # plt.colorbar(label=f'{current_quantity_object["chart_name"]} {current_quantity_object["units"]}')
-                # plt.xlabel(f'{slc.extent_dirs[0]} / m')
-                # plt.ylabel(f'{slc.extent_dirs[1]} / m')    
+
                 plt.axis('off') 
-                name_of_chart = f'{current_type}_2dslice{twoD_slice}@{slc.times[it]}secs'
-                # TODO: create new folder each run
-                # add to project folder if ran from outwith of this script
-                # new_dir_path = './outputSlices'
+                # get orientation of slice
+                if 'x' not in slice.extent_dirs:
+                    orientation = 'x'               
+                elif 'y' not in slice.extent_dirs:
+                    orientation = 'y'
+                else:
+                    orientation = 'z'
+
+                name_of_chart = f'{current_type}_{orientation}slice{slice_counter}@{slc.times[it]}secs'
+
                 # plt.show()
                 save_chart_high_res(name_of_chart, new_dir_path, 1200)      
-                # plt.savefig(f'figs/{name_of_chart}_{i}.svg', bbox_inches='tight')
-                # plt.close()
+
                 counter += 1
+            slice_counter += 1
 
 
 # Creates an instance of a simulation master-class which manages all data for a given simulation
@@ -271,7 +262,7 @@ desktop_resi = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projec
 west_l2 = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\22. Sweet Street\Resi\Final\L2_West_Core_FSA'
 path_to_root_directory = (r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
 fsa1 = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models\FS02-T-FSA"
-sensitivity = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA"
+sensitivity = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA\FS_10_CoreB1_FSA"
 # setup loop for path_to_root_directory
 def run_slice_loop(
             path_to_root_directory,
@@ -279,25 +270,27 @@ def run_slice_loop(
             runs_to_skip=None,
             runs_to_not_skip=None
 ):
-
+    
+    # TODO: send in time list for each run
+    # get total runtime
     filenames = listdir(path_to_root_directory)
     for run in filenames:
         current_path = (f'{path_to_root_directory}\{run}')
+        time_intervals=[60, 120, 180, 240, 300]
         # if runs_to_skip is None or runs_to_skip not in run:
         if len([f for f in (runs_to_not_skip) if f in run]) > 0:
             obtain_slice(
                 path_to_directory=current_path, 
                 save_in_cfd_folder=True, 
-                save_path=save_path
+                save_path=save_path,
+                time_intervals=time_intervals
                 )
+if __name__ == '__main__':
+    slice_array = return_2d_slices(sensitivity)
+    slices_chosen = [0, 1, 2, 3, 4]
+    obtain_slice(path_to_directory=sensitivity, slices_chosen=slices_chosen)
 
-# run_slice_loop(
-#             path_to_root_directory=path_to_root_directory,
-#             save_path=r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Report',
-#             # runs_to_skip="FS01-T-MoE"
-#             # runs_to_not_skip=["FS14", "FS15", "FS16"]
-#             runs_to_not_skip=["FS08"]
-
-# )
-obtain_slice(path_to_directory=sensitivity)
-# was on FS14
+    ''''
+        TODO: after save -> add to template report
+        do we need to trim white space?
+    '''

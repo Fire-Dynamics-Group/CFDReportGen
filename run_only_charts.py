@@ -35,7 +35,6 @@ while True:
         pass
         if values['PATH']:
             values['PATH'] = r"{}".format(values['PATH'])
-        # TODO: check if inputs are valid??
         path_to_root_directory = f"{values['PATH']}"
         project_name = values['PROJECT_NAME']
         charts_folder = "outputCharts"
@@ -44,10 +43,19 @@ while True:
             os.mkdir(charts_folder)
         if not os.path.isdir(new_dir_path):
             os.mkdir(new_dir_path)
+        '''
+            TODO: get it to work for final folder too
+        '''
+
+        sub_folders = [f for f in listdir(path_to_root_directory) if os.path.isdir(f'{path_to_root_directory}/{f}')]
+        if len(sub_folders) == 0:
+            sub_folders = [os.path.basename(os.path.dirname(path_to_root_directory))]
+            path_to_root_directory = os.path.dirname(path_to_root_directory)
         
-        for current_name in listdir(path_to_root_directory):
+        for current_name in sub_folders:
             firefighting = "FSA" in current_name
             path_to_hrr_file, path_to_scen_directory, path_to_fds_file, path_to_devc_file, error_list = return_paths_to_files(scenario_name=current_name, dir_path=path_to_root_directory, new_folder_structure=True)
             run_hrr_charts(path_to_fds_file, path_to_hrr_file,new_dir_path=new_dir_path,firefighting=True)
             run_devc_charts(path_to_devc_file, path_to_fds_file, new_dir_path,firefighting=True)
-            # TODO: popup for complete and open folder
+
+

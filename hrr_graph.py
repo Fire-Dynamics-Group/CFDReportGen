@@ -19,6 +19,12 @@ brand_blues = {
 }
 # graph_generation\MoE_Test\Graph_MoE_Test\Graph_MoE_Test.fds
 def find_hrr_from_fds_file(path_to_file):
+    ring_list = []
+    name = os.path.basename(path_to_file)
+    if "Kitchen" in path_to_file:
+        sn = "Kitchen"
+    else:
+        sn = "Living Room"
     with open(path_to_file) as f:
         for line in f:
             line_stripped_lowercase = line.strip().lower()
@@ -35,7 +41,75 @@ def find_hrr_from_fds_file(path_to_file):
                     fire_area = abs(float(fire_position_array[0]) - float(fire_position_array[1])) * abs(float(fire_position_array[2]) - float(fire_position_array[3]))
                     print(fire_area)
                     hrr_value = fire_area * hrr_pua_value
+                    # check if fire area is not none
+                    # if none find each ring and add together
                     return hrr_value
+                if ", SURF_IDS=\'Ring ".lower() in line_stripped_lowercase:
+                    ring_list.append(line)
+        # if rings found
+        prog_HRR = []
+        prog_time = []
+        t = 0 
+        if "PD1" in name:
+            Simulation_Time = 1800
+        else:
+            Simulation_Time = 1200 
+
+        if "PD1" in name:
+            ylim = 300
+            if "Kitchen" in sn:
+                fgr = 0.0469
+
+            else:
+                fgr = 0.0117
+
+            peak_time = 120 # sprinkler_activation # to be passed in
+            peak_HRR = fgr*(peak_time**2)
+            while t <= peak_time:
+                prog_HRR.append(min(t**2*fgr, peak_HRR))
+                prog_time.append(t)
+                t = t+1
+            while t <= Simulation_Time:
+                prog_HRR.append(max(peak_HRR + (t - peak_time)*(0-peak_HRR)/120, 0))
+                prog_time.append(t)
+                t = t+1
+        else:
+            ylim = 2000    
+            peak_HRR = 1500 
+            if "Kitchen" in sn:
+                fgr = 0.0469
+            else:
+                fgr = 0.0117
+            while t <= Simulation_Time:
+                prog_HRR.append(min(t**2*fgr, peak_HRR))
+                prog_time.append(t)
+                t = t+1   
+        outer_ring = ring_list[-4:-1]
+        # Initialize min and max values for x, y, z
+        min_x = min_y = min_z = float('inf')
+        max_x = max_y = max_z = float('-inf')
+
+        # Extract and compute the min and max values
+        for line in outer_ring:
+            _, values= line.split('XB=')
+            coords = [float(v) for v in values.split(',')[0:6]]
+            min_x = min(min_x, coords[0], coords[1])
+            max_x = max(max_x, coords[0], coords[1])
+            min_y = min(min_y, coords[2], coords[3])
+            max_y = max(max_y, coords[2], coords[3])
+            min_z = min(min_z, coords[4], coords[5])
+            max_z = max(max_z, coords[4], coords[5])
+
+        # The outer corners of the fire
+        outer_corners = {
+            'min': (min_x, min_y, min_z),
+            'max': (max_x, max_y, max_z)
+        }
+        fire_area = (max_x - min_x) * (max_y - min_y)
+        hrr_value = fire_area * hrr_pua_value
+        return hrr_value
+                
+                
 
 
 def plot_legend(include_door_openings=False):
@@ -43,7 +117,6 @@ def plot_legend(include_door_openings=False):
         cols = 3
     else:
         cols = 2
-    #     bbox_position = (0.5,-0.27)
     bbox_position = (0.5,-0.37)
     plt.legend(bbox_to_anchor =bbox_position, ncol=cols,loc='lower center', fontsize = 8, frameon=False)
 
@@ -70,12 +143,10 @@ def plot_bounds(x_min_axis, x_max_axis, y_min_axis, y_max_axis):
 
 def plot_bounds_without_time_x_axis(line_y_max_array, line_y_min_array, x_column):
     y_max_axis, y_min_axis = compute_y_axis_bounds(line_y_max_array, line_y_min_array)
-    # if type(x_column)==list:
-    #     x_column = np.array(x_column)
+
     x_max_axis, x_min_axis = compute_y_axis_bounds(x_column, x_column)
     plot_bounds(x_min_axis, x_max_axis, y_min_axis, y_max_axis)
-# plot_bounds_time_on_x_axis
-# plot_bounds_without_time_x_axis
+
 def plot_bounds_time_on_x_axis(line_y_max_array, line_y_min_array, x_column):
     y_max_axis, y_min_axis = compute_y_axis_bounds(line_y_max_array, line_y_min_array)
     if type(x_column)==list:
@@ -112,7 +183,7 @@ def compute_programmed_HRR(row, programmed_growth_rate, max_HRR, steady_state=Tr
 def chart_hrr(
             df,
             new_dir_path,
-            max_model_hrr, 
+            max_model_hrr, # passed in as None for open plan??
             x_column_name='Time', 
             y_column_name='HRR', 
             programmed_growth_rate=growthRateObject["medium"],
@@ -125,13 +196,12 @@ def chart_hrr(
     y_column = df[y_column_name]
 
     max_time = x_column.max()
-    
-    # Hack for office
-    # if __name__ == '__main__':
-    #     door_openings = {'opening_apartment': 180.0, 'closing_apartment': None, 'opening_stair': None, 'closing_stair': None}
-    # move below to own function
+
     programmed_time = {'Time': list(range(0, int(max_time)+1))}
     programmed_df = pd.DataFrame(programmed_time)
+    '''
+    # TODO: how to handle below if gives NaN
+    '''
     programmed_df['HRR'] = programmed_df.apply(
         lambda row: compute_programmed_HRR(
             row, 
@@ -154,10 +224,7 @@ def chart_hrr(
         # door_openings['opening_apartment'] = 60
         apt_open_label = ("flat door opens").capitalize()
         # TODO: remove below -> hack for office charts
-        # if __name__ == '__main__':
-        #     apt_open_label = "Lobby and Stair Doors Open"
-        # else:
-        #     apt_open_label = ("flat door opens").capitalize()
+
         plot_verticle_line(x_line=door_openings['opening_apartment'], line_label=apt_open_label, color='blue')
         if firefighting == False:
             plot_verticle_line(x_line=door_openings['closing_apartment'], line_label=("flat door closes").capitalize(), color='m')
@@ -171,7 +238,6 @@ def chart_hrr(
         plot_bounds_time_on_x_axis(line_y_max_array, line_y_min_array, x_column)
         plt.tight_layout() 
         save_chart_high_res(name_of_chart=filename, new_dir_path=new_dir_path)
-        # plt.savefig('HRR_test_chart.png', )
         # plt.show()
         plt.close()
 
@@ -281,7 +347,10 @@ def chart_devc(
         plt.close()
 
 def save_chart_high_res(name_of_chart, new_dir_path, dpi=1200):
-    plt.savefig(f'{new_dir_path}/{name_of_chart}_chart.png', format='png', dpi=dpi)
+    file_path = f'{new_dir_path}/{name_of_chart}_chart.png'
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    plt.savefig(file_path, format='png', dpi=dpi)
     plt.close()
 
 # Likely should be after flat door opens - is this in the fds file??
@@ -320,7 +389,6 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
         if column_prefix != "SD" and "SPRK" not in column_prefix and column_prefix !="Time":
             # access object
             for object_name in devc_chart_constants.keys():
-                # hack to allow lobby_pres and cc_pres
                 if "pres" in object_name:
                     object_name_temp = "pres"
                 else:
@@ -554,7 +622,7 @@ if __name__=='__main__':
     # path_to_root_directory = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\31. Camp Hill Gardens Corridor\FS2_FSA_2'
     # path_to_root_directory = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\31. Camp Hill Gardens Corridor'
     path_to_root_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limited\F Drive - Projects\230223 - East Road\6. Calculations\Completed runs for transfer"
-    path_to_root_directory = r"C:\Users\IanShaw\Dropbox\Projects CFD\38. No1 Blackhorse Lane\S3 FSA"
+    path_to_root_directory = r"C:\Users\IanShaw\Dropbox\Projects CFD\38. No1 Blackhorse Lane\S3 FSA\new"
     # path_to_file = fr'{path_to_root_directory}\FS5_MOE\FS5_MOE\FS5_MOE_devc.csv'
     # path_to_fds_file = fr'{path_to_root_directory}\FS5_MOE\FS5_MOE.fds'
     from os import listdir
