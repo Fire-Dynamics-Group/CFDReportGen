@@ -121,6 +121,7 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
     else:
         new_dir_path = f'{save_path}\{project_name}'
 
+    print(f"\nSaving slices to: {os.path.abspath(new_dir_path)}")
     
     if not os.path.isdir(new_dir_path):
         os.mkdir(new_dir_path)
@@ -213,42 +214,44 @@ def obtain_slice(path_to_directory = r"C:\Users\IanShaw\Fire Dynamics Group Limi
                 
                 temp_slc_data = slc_data
 
-                # why did the slices not always have that timestep? or the right amount of slices in them??
+                try:
+                    # Handle different data structures
+                    if isinstance(temp_slc_data, tuple):
+                        if len(temp_slc_data) > 0:
+                            current = temp_slc_data[0][it] if isinstance(temp_slc_data[0], list) else temp_slc_data[it]
+                        else:
+                            current = temp_slc_data[it]
+                    else:
+                        current = temp_slc_data[it]
 
-                # if len(slc_data) > 1:
-                #     temp_slc_data = slc_data[0]
-                # else:
-                #     temp_slc_data = slc_data
+                    if type(current) == list:
+                        current = np.array(current, dtype=np.float64)
 
-                current = temp_slc_data[it]
+                    data = current.T
 
-                if type(current) == list:
-                    current = np.array(current, dtype=np.float64)
+                    plt.imshow(data, 
+                                origin='lower',
+                                vmin=current_quantity_object["v_min"],
+                                vmax=current_quantity_object["v_max"],
+                                cmap=current_cmap,
+                                interpolation='gaussian',
+                            extent=slc.extent.as_list())
 
-                data = current.T
+                    plt.axis('off') 
+                    # get orientation of slice
+                    if 'x' not in slice.extent_dirs:
+                        orientation = 'x'               
+                    elif 'y' not in slice.extent_dirs:
+                        orientation = 'y'
+                    else:
+                        orientation = 'z'
 
-                plt.imshow(data, 
-                            origin='lower',
-                            vmin=current_quantity_object["v_min"],
-                            vmax=current_quantity_object["v_max"],
-                            cmap=current_cmap,
-                            # interpolation='nearest',
-                            interpolation='gaussian',
-                        extent=slc.extent.as_list())
+                    name_of_chart = f'{current_type}_{orientation}slice{slice_counter}@{slc.times[it]}secs'
 
-                plt.axis('off') 
-                # get orientation of slice
-                if 'x' not in slice.extent_dirs:
-                    orientation = 'x'               
-                elif 'y' not in slice.extent_dirs:
-                    orientation = 'y'
-                else:
-                    orientation = 'z'
-
-                name_of_chart = f'{current_type}_{orientation}slice{slice_counter}@{slc.times[it]}secs'
-
-                # plt.show()
-                save_chart_high_res(name_of_chart, new_dir_path, 1200)      
+                    save_chart_high_res(name_of_chart, new_dir_path, 1200)      
+                except (IndexError, TypeError) as e:
+                    print(f"Warning: Could not process time step {time_step} for slice {slice_counter}: {str(e)}")
+                    continue
 
                 counter += 1
             slice_counter += 1
@@ -263,6 +266,7 @@ west_l2 = r'C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CF
 path_to_root_directory = (r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models")
 fsa1 = r"C:\Users\IanShaw\Fire Dynamics Group Limited\CFD - Files\Projects CFD\9. 100 Avenue Road\Jan 2023 Corridor Models\FS02-T-FSA"
 sensitivity = r"C:\Users\IanShaw\Dropbox\Projects CFD\9. 100 Avenue Road\sensitivity run fs16\FS16_CoreB1_FSA\FS_10_CoreB1_FSA"
+sensitivity = r"C:\Users\IanShaw\Dropbox\Projects CFD\0186 Claridges\Runs\FS01-FSA"
 # setup loop for path_to_root_directory
 def run_slice_loop(
             path_to_root_directory,
@@ -287,7 +291,16 @@ def run_slice_loop(
                 )
 if __name__ == '__main__':
     slice_array = return_2d_slices(sensitivity)
-    slices_chosen = [0, 1, 2, 3, 4]
+    print(f"Found {len(slice_array)} 2D slices in the simulation")
+    
+    # Only choose slices that exist
+    available_slices = list(range(len(slice_array)))
+    print(f"Available slice indices: {available_slices}")
+    
+    # Use all available slices by default
+    slices_chosen = available_slices
+    print(f"Processing slices: {slices_chosen}")
+    
     obtain_slice(path_to_directory=sensitivity, slices_chosen=slices_chosen)
 
     ''''
