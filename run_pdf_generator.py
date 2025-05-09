@@ -19,22 +19,20 @@ draw_block_input = [
     drawn_by_text
 ]
 
-# Variables for slice type and orientation
-slice_type = "SOOT VISIBILITY"
-slice_orientation = "zslice2"
-
+# Create a list of 9 identical test image paths with absolute paths
 img_dir = os.path.abspath(os.path.join(os.getcwd(), 'outputSlices', 'FS_10_CoreB1_FSA'))
-img_paths = [
-    os.path.join(img_dir, f)
-    for f in os.listdir(img_dir)
-    if f.startswith(f"{slice_type}_{slice_orientation}") and f.endswith('.png')
+img_names = [
+    "SOOT VISIBILITY_zslice2@60.00445secs_chart.png",
+    "SOOT VISIBILITY_zslice2@120.0006secs_chart.png",
+    "SOOT VISIBILITY_zslice2@180.0027secs_chart.png",
+    "SOOT VISIBILITY_zslice2@240.0049secs_chart.png",
+    "SOOT VISIBILITY_zslice2@300.0secs_chart.png",
+    "SOOT VISIBILITY_zslice2@60.00445secs_chart.png",
+    "SOOT VISIBILITY_zslice2@120.0006secs_chart.png",
+    "SOOT VISIBILITY_zslice2@180.0027secs_chart.png",
+    "SOOT VISIBILITY_zslice2@240.0049secs_chart.png"
 ]
-img_paths.sort()  # Optional: sort by filename (which usually sorts by time)
-
-# Repeat images as needed to get 9
-while len(img_paths) < 9:
-    img_paths += img_paths[:9-len(img_paths)]
-img_paths = img_paths[:9]
+img_paths = [os.path.join(img_dir, name) for name in img_names]
 
 # Verify image can be read
 test_img = cv2.imread(img_paths[0])
@@ -44,8 +42,8 @@ if test_img is None:
 # Create instance of PDF generator
 generator = GeneratePDFSlice(
     n_slice=9,  # Number of slices per page (1, 5, or 9)
-    img_loc=img_paths,  # List of 9 image paths
-    slice_type=slice_type,  # Using variable slice type
+    img_loc=img_paths,  # List of 9 identical test image paths
+    slice_type='test',  # Using test image
     draw_block_input=draw_block_input,
     slice_min_value=0,  # Minimum value for color bar
     slice_max_value=10,  # Maximum value for color bar

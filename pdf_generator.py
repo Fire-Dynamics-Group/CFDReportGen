@@ -192,7 +192,6 @@ class GeneratePDFSlice:
             self.packet = io.BytesIO()
             self.can = canvas.Canvas(self.packet, pagesize=A3)
             self.can.saveState()
-            self.can.rotate(90)
 
             # Write Drawing Title Blocks and Color bar
             self.write_drawing_title_block(draw_block_input)
@@ -275,7 +274,8 @@ class GeneratePDFSlice:
             else:
                 base, ext = os.path.splitext(self.output_name)
                 output_filename = f"{base}_{i}{ext}"
-
+            # Sanitize filename to avoid invalid path issues
+            output_filename = os.path.basename(output_filename)
             # Write to the specified output location
             output_path = os.path.join(self.output_loc, output_filename)
             outputStream = open(output_path, "wb")
