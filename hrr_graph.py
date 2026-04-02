@@ -9,7 +9,7 @@ from pathlib import Path
 # from auto_report import scenario_names
 from constants import growthRateObject, chart_config, devc_chart_constants, font_name_normal
 
-from helper_functions import return_paths_to_files, find_worst_case_column_name, filter_dataframe_by_column_starting_with_string, read_from_csv_skip_first_row
+from helper_functions import return_paths_to_files, find_worst_case_column_name, filter_dataframe_by_column_starting_with_string, read_from_csv_skip_first_row, get_column_prefix
 from fds_output_utils import find_door_opening_times
 
 brand_blues = {
@@ -381,21 +381,12 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
     devc_df = read_from_csv_skip_first_row(path_to_file)
     door_openings = find_door_opening_times(path_to_file=path_to_fds_file)
 
-    def remove_substring_after_number(string):
-        counter = 0
-        while counter < len(string):
-            if string[counter].isdigit():
-                # remove from index onwards
-                string = string[:counter]
-            counter += 1
-        return string
-
-    # drop any numbers and anything after numbers - perhaps just final _??
+    # Strip trailing device number to get column prefix
     dataframe_columns = devc_df.columns
     prefixes = []
     i = 0
     while i < len(dataframe_columns):
-        prefixes.append(remove_substring_after_number(string=dataframe_columns[i]))
+        prefixes.append(get_column_prefix(column_name=dataframe_columns[i]))
         i += 1
 
     devc_df_column_prefixes = list(dict.fromkeys(prefixes))
@@ -424,15 +415,15 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
                 def find_column_name_with_max(data_columns):
                     return data_columns.max().idxmax(axis=0)
 
-                def extract_num_from_string(string):
-                    num = ""
-                    for char in string:
-                        if char.isdigit():
-                            num += char
-                    return num
+                def extract_fsa_distance(column_name):
+                    """Extract distance number from FSA column suffix.
+                    e.g. corridor_1_FSA_temp_2m -> 2, cc_FSA_temp_15m -> 15"""
+                    prefix = get_column_prefix(column_name)
+                    suffix = column_name[len(prefix):]  # e.g. '2m', '15m'
+                    return int(suffix.replace('m', ''))
                 # if fsa_temp: create chart for all columns
                 # pass in naming convention for fs cc or stair
-                if firefighting and column_prefix == 'cc_FSA_temp_':
+                if firefighting and 'FSA' in column_prefix and 'temp' in column_prefix:
                     # TODO: bespoke chart using max 30 secs after flat door opens
                     # TODO: read worst case temps from scenario object
                     time = door_openings['opening_apartment'] + 30
@@ -453,7 +444,7 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
                     applicable_cols = [f for f in data_columns.columns if '2' in f or '4' in f or '15' in f]
                     for column in applicable_cols: # limited to 2, 4 and 15 
                         # extract number
-                        distance = int(extract_num_from_string(column)) # use for distance x axis
+                        distance = extract_fsa_distance(column) # use for distance x axis
                         distance_list.append(distance)
                     if len(data_columns.columns) == 1:
                         # if only one in series plot using below:
@@ -474,7 +465,7 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
                         # TODO: move below into function?
                         for column in applicable_cols: # only for 2, 4 and 15
                             # extract number
-                            distance = int(extract_num_from_string(column)) # use for distance x axis
+                            distance = extract_fsa_distance(column) # use for distance x axis
                             temp = devc_df[column][temp_index:].max()
                             # slice data from from index onwards
                             temp_list.append(temp)

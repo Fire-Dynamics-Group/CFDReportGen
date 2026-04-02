@@ -8,6 +8,33 @@ import os
 from os import listdir, scandir
 from pathlib import Path
 
+def get_column_prefix(column_name):
+    """Strip trailing device number to get column prefix.
+    e.g. corridor_1_temp_1 -> corridor_1_temp_
+         cc_FSA_temp_2m -> cc_FSA_temp_
+         stair_temp_1 -> stair_temp_
+    """
+    return re.sub(r'_\d+m?$', '_', column_name)
+
+
+def get_cc_columns(devc_df, param):
+    """Return all non-stair, non-FSA column names for a given parameter type (temp/vis/pres/vel).
+    These are the common corridor/lobby columns used for MOE worst-case."""
+    results = []
+    for col in devc_df.columns:
+        if col == 'Time':
+            continue
+        col_lower = col.lower()
+        if f'_{param}' not in col_lower and not col_lower.startswith(f'{param}_'):
+            # Check if param appears as a segment: e.g. _temp_ in corridor_1_temp_1
+            if f'{param}_' not in col_lower:
+                continue
+        if 'stair' in col_lower or 'fsa' in col_lower:
+            continue
+        results.append(col)
+    return results
+
+
 def return_all_subfolders(path_to_dir):
     return [ f.name for f in scandir(path_to_dir) if f.is_dir() ]
 
@@ -124,11 +151,13 @@ def find_worst_case_column_name(worst_case_max_or_min, column_names, df, is_stai
     return new_df    
 
 
-def get_worst_case_devc(path_to_file, property="temp",firefighting=False):
+def get_worst_case_devc(path_to_file, property="temp", firefighting=False, column_names=None):
     devc_df = read_from_csv_skip_first_row(path_to_file)
     devc_keys = devc_chart_constants.keys()
     current = property
-    data_columns = filter_dataframe_by_column_contains_string(devc_df, current)
+    if column_names is None:
+        data_columns = filter_dataframe_by_column_contains_string(devc_df, current)
+        column_names = list(data_columns.columns)
     if any(current in x for x in devc_keys):
         current_key = [f for f in devc_keys if current in f][0]
     else:
@@ -136,13 +165,11 @@ def get_worst_case_devc(path_to_file, property="temp",firefighting=False):
         current_key = [f for f in devc_keys if f[:-1] in current][0]
 
     column_config = devc_chart_constants[current_key]
-    # May need to limit columns for ff?
     new_df = find_worst_case_column_name(
-    worst_case_max_or_min=column_config["worst_case"], 
-    column_names=list(data_columns.columns),
+    worst_case_max_or_min=column_config["worst_case"],
+    column_names=column_names,
     df=devc_df
 )
-    # scope through worst case column for temp and vis
     return new_df
 def find_current_devc_key(current):
     devc_keys = devc_chart_constants.keys()
