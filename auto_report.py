@@ -86,7 +86,7 @@ def run_report():
                 # set values
                 is_valid = True
                 error_list = []
-                values['PATH'] = r'C:\Users\IanShaw\Dropbox\Projects CFD\29. Transport House Common Corridor\Models\Final Runs'
+                values['PATH'] = r"C:\Users\IanShaw\Dropbox\Projects CFD\45. Evelyn Court\Feb '25 Run - Fully Open Lobby Door"
                 path_to_root_directory = values['PATH']
                 values['CLIENT_NAME'] = "Client Name"
                 import uuid
@@ -268,7 +268,12 @@ def run_report():
                     chart_names = find_all_files_of_type(new_dir_path, suffix=".png")
                     prefixes = [f.split("_")[0] for f in chart_names]
                     unique_prefixes = list(set(prefixes))
-                    unique_prefixes.sort(key=extract_number) # sorts in ascending order
+                    print("unique_prefixes: ", unique_prefixes)
+                    try:
+                        unique_prefixes.sort(key=extract_number) # sorts in ascending order
+                    except Exception as e:
+                        sg.popup_error(f"Error sorting CFD folder prefixes: {e}\nPrefixes: {unique_prefixes}")
+                        raise
                     # either have a million figure tags already in 
                     # loop through scenarios - need unique prefixes before underscore from filename
                     # trial insert first chart

@@ -155,8 +155,19 @@ def plot_bounds_time_on_x_axis(line_y_max_array, line_y_min_array, x_column):
     plot_bounds(x_min_axis, x_max_axis, y_min_axis, y_max_axis)
 
 
-def plot_line(x_data, y_data, label_text, line_color='blue', line_width=0.75, line_style="-"):
-    plt.plot(x_data, y_data, color = line_color, linewidth = line_width, label=label_text, linestyle=line_style)        
+def plot_line(x_data, y_data, label_text, line_color='blue', line_width=0.75, line_style="-", csv_path=None):
+    try:
+        plt.plot(x_data, y_data, color=line_color, linewidth=line_width, label=label_text, linestyle=line_style)
+    except Exception as e:
+        import PySimpleGUI as sg
+        import numpy as np
+        sg.popup_error(
+            f"Error plotting line:\n{e}\n\n"
+            f"CFD csv file may not have enough rows\n"
+            f"CSV path: {csv_path}"
+        )
+        # Do not raise, so the GUI stays open
+        return
 
 def plot_tenable_line(tenable_limit):
     plt.axhline(y=tenable_limit, color='r', linestyle='--',label="Tenability Limit", linewidth=0.75)
@@ -252,8 +263,8 @@ def chart_devc(
             chart_name='Pressure',
             chart_save_name = None,
             firefighting = False,
-            door_openings = {'opening_apartment': 150.0, 'closing_apartment': 170.0, 'opening_stair': 160.0, 'closing_stair': 180.0}
- 
+            door_openings = {'opening_apartment': 150.0, 'closing_apartment': 170.0, 'opening_stair': 160.0, 'closing_stair': 180.0},
+            path_to_file=None
     ):
     is_pressure = False
     # TODO: rolling average only for pressure
@@ -262,9 +273,12 @@ def chart_devc(
     x_column = df[x_column_name]
     y_column = df[y_column_name]
 
-    # remove below -> hack to include line at door opening
-    # if __name__ == '__main__':
-    #     door_openings = {'opening_apartment': 60, 'closing_apartment': None, 'opening_stair': 0, 'closing_stair': None}
+    print(f"[DEBUG] DataFrame shape: {df.shape}")
+    print(f"[DEBUG] Max Time: {x_column.max()}")
+    print(f"[DEBUG] Min Time: {x_column.min()}")
+    print(f"[DEBUG] x_column shape: {x_column.shape}")
+    print(f"[DEBUG] y_column shape: {y_column.shape}")
+
     def compute_y_rolling_average(y_column):
 
         y_average = [] 
@@ -282,6 +296,9 @@ def chart_devc(
             y_average.append(np.nan)
         return y_average
     y_average = compute_y_rolling_average(y_column)
+
+    print(f"[DEBUG] y_average shape: {np.array(y_average).shape}")
+    print(f"[DEBUG] y_average sample: {y_average[:10]}")
 
     if second_y_column_name:
         second_y_column = df[second_y_column_name]
@@ -307,14 +324,14 @@ def chart_devc(
         else:
             bottom_line_style = '-'
 
-        plot_line(x_data=x_column, y_data=y_column, label_text=recorded_label, line_style=bottom_line_style, line_color=brand_blues['mid_blue']) # relative pressure
+        plot_line(x_data=x_column, y_data=y_column, label_text=recorded_label, line_style=bottom_line_style, line_color=brand_blues['mid_blue'], csv_path=path_to_file) # relative pressure
         if is_pressure:
-            plot_line(x_data=x_column, y_data=y_average, label_text=(f'Rolling Average {chart_label}'), line_color="black")
+            plot_line(x_data=x_column, y_data=y_average, label_text=(f'Rolling Average {chart_label}'), line_color="black", csv_path=path_to_file)
 
         if second_y_column_name:
-            plot_line(x_data=x_column, y_data=second_y_column, label_text=second_recorded_label, line_style="dashdot", line_color="orange") # relative pressure
+            plot_line(x_data=x_column, y_data=second_y_column, label_text=second_recorded_label, line_style="dashdot", line_color="orange", csv_path=path_to_file) # relative pressure
             if is_pressure:
-                plot_line(x_data=x_column, y_data=second_y_average, label_text=(f'Rolling Average {second_chart_label}'), line_style="-",line_color="brown")
+                plot_line(x_data=x_column, y_data=second_y_average, label_text=(f'Rolling Average {second_chart_label}'), line_style="-",line_color="brown", csv_path=path_to_file)
 
         plot_verticle_line(x_line=door_openings['opening_apartment'], line_label="flat door opens".capitalize(), color="blue")
         
@@ -450,7 +467,8 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
                             chart_name= column_config["chart_name"],
                             chart_save_name=f'{file_name_from_path(file_path=path_to_file)}_{column}',
                             firefighting=firefighting,
-                            door_openings=door_openings
+                            door_openings=door_openings,
+                            path_to_file=path_to_file
                         )
                     else:
                         # TODO: move below into function?
@@ -554,7 +572,8 @@ def run_devc_charts(path_to_file, path_to_fds_file, new_dir_path,firefighting=Fa
                         chart_name= column_config["chart_name"],
                         chart_save_name=f'{file_name_from_path(file_path=path_to_file)}_{column_prefix}',
                         firefighting=firefighting,
-                        door_openings=door_openings 
+                        door_openings=door_openings,
+                        path_to_file=path_to_file
                     )
 
 def file_name_from_path(file_path):
