@@ -6,6 +6,76 @@ from scen_object_helper_functions import is_sprinklered, find_venting_from_fds, 
 from fds_output_utils import find_door_opening_times
 import PySimpleGUI as sg
 
+
+def _compute_per_prefix_worst_conditions(devc_df, path_to_devc_file, firefighting):
+    """Discover unique area prefixes among temp/vis sensors in a devc dataframe
+    and compute the worst-case value for each one.
+
+    Returns a tuple (worst_condition, prefix_to_df) where:
+      - worst_condition is a dict mapping a stable key per prefix
+        (e.g. "stair_temp", "cc_temp", "Lobby_temp", "corridor_1_vis") to a
+        scalar float — the worst-case (max for temp, min for vis) reduction
+        across all sensors sharing that prefix.
+      - prefix_to_df is a dict mapping each discovered prefix to the dataframe
+        returned by get_worst_case_devc for that prefix's columns. Callers
+        that need the per-prefix worst_case time series (e.g. tenability
+        computation in the MoE branch) can use this without re-reading the
+        CSV.
+
+    Pressure / velocity / FSA-tagged / sprinkler-tagged columns are skipped
+    so that the same logic is safe to call for both MoE and FSA scenarios.
+    """
+    seen_prefixes = set()
+    for column_name in devc_df.columns:
+        if column_name == 'Time':
+            continue
+        col_lower = column_name.lower()
+        if not any(param in col_lower for param in ['temp', 'vis']):
+            continue
+        if 'fsa' in col_lower or 'sprk' in col_lower:
+            continue
+        seen_prefixes.add(get_column_prefix(column_name))
+
+    worst_condition = {}
+    prefix_to_df = {}
+    for prefix in seen_prefixes:
+        is_stair = 'stair' in prefix.lower()
+        is_temp = 'temp' in prefix.lower()
+        if is_stair:
+            condition_key = 'stair_temp' if is_temp else 'stair_vis'
+        else:
+            condition_key = prefix.rstrip('_')
+
+        prefix_cols = [c for c in devc_df.columns if c.startswith(prefix)]
+        new_df_devc = get_worst_case_devc(
+            path_to_file=path_to_devc_file,
+            property=prefix.rstrip('_'),
+            firefighting=firefighting,
+            column_names=prefix_cols,
+        )
+        worst_condition[condition_key] = find_worst_in_column(
+            df=new_df_devc, column_name="worst_case", parameter=prefix.rstrip('_')
+        )
+        prefix_to_df[prefix] = new_df_devc
+
+    # Combined cc_temp / cc_vis worst-case across all non-stair areas
+    # (backward-compat; matches the convenience key used downstream).
+    for param in ['temp', 'vis']:
+        cc_cols = get_cc_columns(devc_df, param)
+        if cc_cols:
+            new_df_devc = get_worst_case_devc(
+                path_to_file=path_to_devc_file,
+                property=param,
+                firefighting=firefighting,
+                column_names=cc_cols,
+            )
+            worst_condition[f'cc_{param}'] = find_worst_in_column(
+                df=new_df_devc, column_name="worst_case", parameter=param
+            )
+
+    return worst_condition, prefix_to_df
+
+
 # TODO: move below to helper_functions.py
 def create_scenario_object(path_to_directory="graph_generation"):
     scenario_names = return_scenario_names(path_to_directory)
@@ -91,53 +161,19 @@ def create_scenario_object(path_to_directory="graph_generation"):
                 "cc_temp": []
                 }
 
-            # Discover unique area prefixes from columns
-            seen_prefixes = set()
-            for column_name in devc_df.columns:
-                if column_name == 'Time':
-                    continue
-                prefix = get_column_prefix(column_name)
-                col_lower = column_name.lower()
-                # Only process temp/vis columns, skip FSA/pressure/velocity/sprinkler/SD
-                if not any(param in col_lower for param in ['temp', 'vis']):
-                    continue
-                if 'fsa' in col_lower or 'sprk' in col_lower:
-                    continue
-                if prefix not in seen_prefixes:
-                    seen_prefixes.add(prefix)
+            worst_condition_map, prefix_to_df = _compute_per_prefix_worst_conditions(
+                devc_df=devc_df,
+                path_to_devc_file=path_to_devc_file,
+                firefighting=firefighting,
+            )
+            scenarios_object[scen_key]["worst_condition"].update(worst_condition_map)
 
-            # Process each discovered prefix (e.g. stair_temp_, corridor_1_temp_, lobby_1_vis_)
-            for prefix in seen_prefixes:
-                is_stair = 'stair' in prefix.lower()
-                is_temp = 'temp' in prefix.lower()
-                is_vis = 'vis' in prefix.lower()
-
-                if is_stair:
-                    condition_key = 'stair_temp' if is_temp else 'stair_vis'
-                else:
-                    condition_key = prefix.rstrip('_')
-
-                # Get columns matching this prefix
-                prefix_cols = [c for c in devc_df.columns if c.startswith(prefix)]
-                new_df_devc = get_worst_case_devc(path_to_file=path_to_devc_file, property=prefix.rstrip('_'), firefighting=firefighting, column_names=prefix_cols)
-                worst_condition = find_worst_in_column(df=new_df_devc, column_name="worst_case", parameter=prefix.rstrip('_'))
-
-                scenarios_object[scen_key]["worst_condition"][condition_key] = worst_condition
-
-                # Compute tenability for temp/vis
+            # Compute tenability for each prefix's temp/vis worst_case time series
+            for prefix, new_df_devc in prefix_to_df.items():
                 for current in moe_list:
                     if current in prefix:
                         tenability_time = compute_last_time_step_not_tenable(df=new_df_devc, property=current, worst_case_column_name="worst_case", firefighting=firefighting)
                         tenability_time_list.append(tenability_time)
-
-            # Combined cc_temp / cc_vis worst-case across all non-stair areas (backward compat)
-            for param in ['temp', 'vis']:
-                cc_cols = get_cc_columns(devc_df, param)
-                if cc_cols:
-                    combined_key = f'cc_{param}'
-                    new_df_devc = get_worst_case_devc(path_to_file=path_to_devc_file, property=param, firefighting=firefighting, column_names=cc_cols)
-                    worst_condition = find_worst_in_column(df=new_df_devc, column_name="worst_case", parameter=param)
-                    scenarios_object[scen_key]["worst_condition"][combined_key] = worst_condition
             # # TODO: remove below hack - required until naming convention to followed in FDS file
             # if scenarios_object[scen_key]["door_opening_times"]["closing_apartment"] == None:
             #     closing_apartment = 80
@@ -159,52 +195,36 @@ def create_scenario_object(path_to_directory="graph_generation"):
                 "15m": []
                 }
 
-            scenarios_object[scen_key]["worst_condition"] = {
-                "stair_temp": [],
-                "stair_vis": [],
-                }           
-            # loop through column names
+            # Mirror the MoE branch: discover every non-stair temp/vis prefix
+            # and surface a worst_condition entry per prefix (cc_temp,
+            # corridor_1_temp, Lobby_temp, lobby_1_vis, ...) plus the
+            # combined cc_temp/cc_vis backward-compat keys. Stair prefixes
+            # collapse to the canonical 'stair_temp'/'stair_vis' keys.
+            worst_condition_map, _ = _compute_per_prefix_worst_conditions(
+                devc_df=devc_df,
+                path_to_devc_file=path_to_devc_file,
+                firefighting=firefighting,
+            )
+            scenarios_object[scen_key]["worst_condition"] = worst_condition_map
+
             door_openings = scenarios_object[scen_key]["door_opening_times"]
             time = door_openings['opening_apartment'] + 30
             temp_index = devc_df['Time'].sub(time).abs().idxmin()
-            stair_temp_counter = 0
-            stair_vis_counter = 0
-            
+
             current = "pres"
             new_df_devc = get_worst_case_devc(path_to_file=path_to_devc_file, property=current,firefighting=firefighting)
             min_pressure = new_df_devc["worst_case"].min()
             scenarios_object[scen_key]["min_pressure"] = min_pressure
 
+            # FSA distance-tagged tenability sensors (e.g. cc_FSA_temp_2m,
+            # corridor_1_FSA_temp_15m) populate the 2m/4m/15m tenability
+            # entries.
             for column_name in devc_df.columns:
                 if 'FSA' in column_name and '_temp_' in column_name:
-                    worst_temp = temp = devc_df[column_name][temp_index:].max()
-                    # Extract distance suffix: everything after the last _temp_ segment
-                    # e.g. cc_FSA_temp_2m -> 2m, corridor_1_FSA_temp_15m -> 15m
-                    fsa_prefix = get_column_prefix(column_name)  # e.g. cc_FSA_temp_
-                    tenability_key = column_name[len(fsa_prefix):]  # e.g. 2m
+                    worst_temp = devc_df[column_name][temp_index:].max()
+                    fsa_prefix = get_column_prefix(column_name)
+                    tenability_key = column_name[len(fsa_prefix):]
                     scenarios_object[scen_key]["tenability"][tenability_key] = worst_temp
-                if 'stair_temp' in column_name or 'stair_vis' in column_name:
-                    if 'stair_temp' in column_name:
-                        prefix = 'stair_temp'
-                        # if stair_temp_counter > 0: # current hack should use prefixes for columns
-
-                        # stair_temp_counter += 1
-                    else:
-                        prefix = 'stair_vis'
-                        # if stair_vis_counter > 0:
-                        #     break
-                        # stair_vis_counter += 1
-                    # find worst from all columns
-                    new_df_devc = get_worst_case_devc(path_to_file=path_to_devc_file, property=prefix,firefighting=firefighting)
-
-                    max_or_min = max_or_min_is_worse(parameter=prefix)
-                    worst_condition = find_worst_in_column(df=new_df_devc, column_name="worst_case", parameter=prefix)
-                    # add worst temp to object
-
-                    # worst_condition = new_df_devc["worst_case"].min() # find worst - max or min??
-
-                    # use prefix for object
-                    scenarios_object[scen_key]["worst_condition"][prefix] = worst_condition 
     jsonString = json.dumps(scenarios_object)
     jsonFile = open(f"{scenario_names[0]}_etal.json", "w")
     jsonFile.write(jsonString)

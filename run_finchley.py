@@ -22,65 +22,6 @@ os.chdir(PROJECT_ROOT)
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def _install_robust_find_worst_case():
-    """Monkey-patch helper_functions.find_worst_case_column_name to handle
-    leading-zero device numbering (e.g. stair_temp_01..08) and column-name
-    sets that mix prefixes (e.g. stair_pres_* alongside corridor_1_pres_*).
-
-    The original implementation assumes:
-      - every numeric suffix from 1..len(column_names) exists, and
-      - those columns all share a single prefix (the 'stair' prefix)
-    Both assumptions break for the Finchley FDS files. The fix here:
-      - sort columns by their trailing numeric segment (after stripping any
-        leading zeros)
-      - if 'stair' is present in the column set, use ONLY the stair columns
-        for the split (the original intent: split stair sensors into two
-        worst-case lines).
-    """
-    import re as _re
-    import helper_functions as _hf
-
-    _original = _hf.find_worst_case_column_name
-
-    def _trailing_int(name):
-        m = _re.search(r"_(\d+)m?$", name)
-        return int(m.group(1)) if m else None
-
-    def patched(worst_case_max_or_min, column_names, df, is_stair=False, firefighting=False):
-        new_df = df.copy()
-        is_stair = any("stair" in c for c in column_names)
-
-        def reduce(cols):
-            if not cols:
-                return None
-            if worst_case_max_or_min == "min":
-                return new_df[cols].min(axis=1)
-            return new_df[cols].max(axis=1)
-
-        if is_stair:
-            stair_cols = [c for c in column_names if "stair" in c]
-            stair_cols_sorted = sorted(
-                stair_cols,
-                key=lambda c: (_trailing_int(c) is None, _trailing_int(c) or 0),
-            )
-            half = max(1, len(stair_cols_sorted) // 2)
-            first = stair_cols_sorted[:half]
-            second = stair_cols_sorted[half:] or first
-            new_df["worst_case"] = reduce(first)
-            new_df["worst_case_b"] = reduce(second)
-        else:
-            new_df["worst_case"] = reduce(column_names)
-        return new_df
-
-    _hf.find_worst_case_column_name = patched
-    # scenarios_object imports the symbol directly; rebind there too
-    import scenarios_object as _so
-    _so.find_worst_case_column_name = patched  # may not be referenced; harmless
-
-
-_install_robust_find_worst_case()
-
-
 def jsonable(obj):
     """Make a thing JSON-printable. Handles numpy/pandas scalars."""
     try:
