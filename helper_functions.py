@@ -104,51 +104,39 @@ def filter_dataframe_by_column_contains_string(df, string):
     return df.loc[:, df.columns.str.contains(string)]
 
 def find_worst_case_column_name(worst_case_max_or_min, column_names, df, is_stair=False, firefighting=False):
-    # create new df
-    # need time column
-    # TODO: if column names contains 'stair' -> have second worst_case column -> worst_case_b
-    # TODO: allow both stair and corridor columns
-    is_stair = any("stair" in x for x in column_names)
+    # "Stair mode" produces TWO worst_case columns (worst_case + worst_case_b)
+    # by sorting the stair sensors by their trailing device number and
+    # bisecting them into a lower-stair / upper-stair safety zone pair.
+    # It engages ONLY when *all* columns are stair sensors; mixed sets fall
+    # through to a single worst_case computation.
+    column_names = list(column_names)
     new_df = df.copy()
-        
-    def return_worst_case_column(worst_case_label, new_df, column_names):
-        if worst_case_max_or_min == "min":
-            # need to create new df: time & worst case at each time step
-            new_df[worst_case_label] = new_df[column_names].min(axis=1)
-            # return find_column_name_with_min(data_columns=data_for_columns)
-        else:
-            new_df[worst_case_label] = new_df[column_names].max(axis=1)
-            # return find_column_name_with_max(data_columns=data_for_columns)
-        return new_df  
 
-    worst_case_labels = ["worst_case", "worst_case_b"]
-    
-    def find_all_elements_endwith(list, suffix):
-        return [ f for f in list if f.endswith( suffix ) ]
+    if len(column_names) == 0:
+        return new_df
+
+    is_stair = all("stair" in c for c in column_names)
+
+    def return_worst_case_column(worst_case_label, new_df, cols):
+        if worst_case_max_or_min == "min":
+            new_df[worst_case_label] = new_df[cols].min(axis=1)
+        else:
+            new_df[worst_case_label] = new_df[cols].max(axis=1)
+        return new_df
 
     if is_stair:
-        ordered_col_list = []
-    # split columns in two
-    # IS Note: range was 10 in past
-        range_max = len(column_names)
-        half_range = int(range_max / 2)
-        # for index in range(10):
-        for index in range(range_max):
-            # if len(find_all_elements_endwith(column_names, f'_{index+1}')) == 0:
-            #     print("break")
-            current = find_all_elements_endwith(column_names, f'_{index+1}')[0]
-            ordered_col_list.append(current)
-        # new_df = return_worst_case_column(worst_case_label="worst_case", new_df=new_df, column_names=ordered_col_list[:5])
-        # new_df = return_worst_case_column(worst_case_label="worst_case_b", new_df=new_df, column_names=ordered_col_list[5:])
-        new_df = return_worst_case_column(worst_case_label="worst_case", new_df=new_df, column_names=ordered_col_list[:half_range])
-        new_df = return_worst_case_column(worst_case_label="worst_case_b", new_df=new_df, column_names=ordered_col_list[half_range:])
+        # Sort by the trailing integer device number, tolerant of leading
+        # zeros (stair_temp_01) and gaps in numbering (01, 02, 03, 05, 06, 08).
+        def trailing_int(name):
+            m = re.search(r'_(\d+)m?$', name)
+            return int(m.group(1)) if m else float('inf')
+        ordered = sorted(column_names, key=trailing_int)
+        half = len(ordered) // 2
+        new_df = return_worst_case_column("worst_case",   new_df, ordered[:half])
+        new_df = return_worst_case_column("worst_case_b", new_df, ordered[half:])
     else:
-        new_df = return_worst_case_column(worst_case_label="worst_case", new_df=new_df, column_names=column_names)
-        # 1-5
-        # 6-10
-    # go twice
-    # second run worst_case_b
-    return new_df    
+        new_df = return_worst_case_column("worst_case", new_df, column_names)
+    return new_df
 
 
 def get_worst_case_devc(path_to_file, property="temp", firefighting=False, column_names=None):
