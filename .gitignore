@@ -5,7 +5,6 @@ outputCharts/
 env/
 dist/
 build/
-main.py
 template_base64.txt
 __pycache__/
 __pycache__/validate.cpython-310.pyc
